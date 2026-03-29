@@ -3,27 +3,36 @@ import Foundation
 // MARK: - UDDF Document
 
 /// Top-level UDDF document, produced by Layer 2 interpretation.
-/// All values are in UDDF units (Kelvin, Pascals, cubic meters) — your app converts.
+/// All values are in UDDF canonical units (Kelvin, Pascals, cubic meters).
 public struct UDDFDocument: Codable, Sendable {
     public let version: String
     public let generator: UDDFGenerator
+    public let owner: UDDFOwner?
+    public let buddies: [UDDFBuddy]
     public let mixes: [String: UDDFMix]
     public let sites: [String: UDDFSite]
+    public let diveBases: [UDDFDiveBase]
     public let dives: [UDDFDive]
     public let overflow: [String: String]?
 
     public init(
         version: String,
         generator: UDDFGenerator,
-        mixes: [String: UDDFMix],
-        sites: [String: UDDFSite],
-        dives: [UDDFDive],
+        owner: UDDFOwner? = nil,
+        buddies: [UDDFBuddy] = [],
+        mixes: [String: UDDFMix] = [:],
+        sites: [String: UDDFSite] = [:],
+        diveBases: [UDDFDiveBase] = [],
+        dives: [UDDFDive] = [],
         overflow: [String: String]? = nil
     ) {
         self.version = version
         self.generator = generator
+        self.owner = owner
+        self.buddies = buddies
         self.mixes = mixes
         self.sites = sites
+        self.diveBases = diveBases
         self.dives = dives
         self.overflow = overflow
     }
@@ -33,13 +42,21 @@ public struct UDDFDocument: Codable, Sendable {
 
 public struct UDDFGenerator: Codable, Sendable {
     public let name: String
+    public let type: String?
     public let version: String?
+    public let datetime: String?
     public let manufacturer: String?
     public let diveComputer: UDDFDiveComputer?
 
-    public init(name: String, version: String? = nil, manufacturer: String? = nil, diveComputer: UDDFDiveComputer? = nil) {
+    public init(
+        name: String, type: String? = nil, version: String? = nil,
+        datetime: String? = nil, manufacturer: String? = nil,
+        diveComputer: UDDFDiveComputer? = nil
+    ) {
         self.name = name
+        self.type = type
         self.version = version
+        self.datetime = datetime
         self.manufacturer = manufacturer
         self.diveComputer = diveComputer
     }

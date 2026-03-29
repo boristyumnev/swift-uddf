@@ -14,16 +14,18 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
     /// Shearwater's sentinel value for "no tank pressure data"
     static let pressureSentinel: Double = 56247452
 
+    private let standard = StandardUDDFInterpreter()
+
     public init() {}
 
     public func interpret(tree: XNode) throws -> ParseResult {
         var diagnostics: [ParseDiagnostic] = []
 
         let version = tree.attribute("version") ?? "unknown"
-        let standard = StandardUDDFInterpreter()
         let generator = standard.parseGenerator(tree, diagnostics: &diagnostics)
+        let (owner, buddies) = standard.parseDiver(tree)
         let mixes = parseMixes(tree, diagnostics: &diagnostics)
-        let sites = standard.parseSites(tree)
+        let (sites, diveBases) = standard.parseSites(tree)
         let dives = parseDives(tree, knownSiteIds: Set(sites.keys), mixes: mixes, diagnostics: &diagnostics)
 
         diagnostics.insert(
@@ -38,8 +40,11 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
         let document = UDDFDocument(
             version: version,
             generator: generator,
+            owner: owner,
+            buddies: buddies,
             mixes: mixes,
             sites: sites,
+            diveBases: diveBases,
             dives: dives
         )
 
@@ -48,7 +53,6 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Mixes
 
-    /// Parse mixes. Shearwater uses compound IDs like `"OC1:32/00"`.
     func parseMixes(_ tree: XNode, diagnostics: inout [ParseDiagnostic]) -> [String: UDDFMix] {
         var mixes: [String: UDDFMix] = [:]
 
@@ -56,7 +60,6 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
         for node in mixNodes {
             guard let id = node.attribute("id") else { continue }
 
-            // Try to extract gas fractions from the compound ID (e.g., "OC1:32/00")
             let (o2, he) = extractGasFromId(id)
                 ?? (node.doubleValue("o2") ?? 0.21, node.doubleValue("he") ?? 0.0)
 
@@ -64,6 +67,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 id: id,
                 name: node.stringValue("name"),
                 o2: o2,
+                n2: node.doubleValue("n2"),
                 he: he,
                 ar: node.doubleValue("ar"),
                 h2: node.doubleValue("h2")
@@ -75,10 +79,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
     }
 
     /// Extract O2/He fractions from Shearwater's compound mix ID.
-    /// Format: `"OC1:32/00"` → o2=0.32, he=0.00
-    /// Format: `"CC1:21/35"` → o2=0.21, he=0.35
     func extractGasFromId(_ id: String) -> (o2: Double, he: Double)? {
-        // Match pattern like "OC1:32/00" or "CC1:21/35"
         guard let colonIdx = id.firstIndex(of: ":") else { return nil }
         let gasPart = id[id.index(after: colonIdx)...]
         let components = gasPart.split(separator: "/")
@@ -89,12 +90,12 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
     }
 
     /// Infer dive mode from Shearwater mix ref prefix.
-    func inferDiveMode(from mixRef: String?) -> String? {
+    func inferDiveMode(from mixRef: String?) -> UDDFDiveMode? {
         guard let ref = mixRef else { return nil }
         if ref.range(of: #"^OC\d+:"#, options: .regularExpression) != nil {
-            return "opencircuit"
+            return .opencircuit
         } else if ref.range(of: #"^CC\d+:"#, options: .regularExpression) != nil {
-            return "closedcircuit"
+            return .closedcircuit
         }
         return nil
     }
@@ -104,16 +105,19 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
     func parseDives(_ tree: XNode, knownSiteIds: Set<String>, mixes: [String: UDDFMix], diagnostics: inout [ParseDiagnostic]) -> [UDDFDive] {
         var dives: [UDDFDive] = []
 
-        let diveNodes = tree.query("profiledata", "repetitiongroup", "dive")
-        for node in diveNodes {
-            let dive = parseSingleDive(node, knownSiteIds: knownSiteIds, mixes: mixes, diagnostics: &diagnostics)
-            dives.append(dive)
+        let repGroups = tree.query("profiledata", "repetitiongroup")
+        for group in repGroups {
+            let groupId = group.attribute("id")
+            for diveNode in group.children("dive") {
+                let dive = parseSingleDive(diveNode, repetitionGroupId: groupId, knownSiteIds: knownSiteIds, mixes: mixes, diagnostics: &diagnostics)
+                dives.append(dive)
+            }
         }
 
         return dives
     }
 
-    func parseSingleDive(_ node: XNode, knownSiteIds: Set<String>, mixes: [String: UDDFMix], diagnostics: inout [ParseDiagnostic]) -> UDDFDive {
+    func parseSingleDive(_ node: XNode, repetitionGroupId: String?, knownSiteIds: Set<String>, mixes: [String: UDDFMix], diagnostics: inout [ParseDiagnostic]) -> UDDFDive {
         let before = node.child("informationbeforedive")
         let after = node.child("informationafterdive")
 
@@ -123,17 +127,51 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
         let visibility = parseVisibility(after, diagnostics: &diagnostics)
         let notes = parseNotes(after)
 
+        // Before-dive fields
+        let surfaceIntervalNode = before?.child("surfaceintervalbeforedive")
+        let isInfinity = surfaceIntervalNode?.child("infinity") != nil ? true : nil
+        let surfaceInterval = surfaceIntervalNode?.doubleValue("passedtime")
+
+        // Link refs
+        let allBeforeRefs = standard.extractLinkRefs(before)
+        let equipmentUsedRefs = standard.extractLinkRefs(after?.child("equipmentused"))
+
+        // Rating
+        let rating = after?.child("rating")?.doubleValue("ratingvalue")
+
         return UDDFDive(
             id: node.attribute("id"),
+            repetitionGroupId: repetitionGroupId,
             number: before?.child("divenumber")?.textValue.flatMap { Int($0) },
+            divenumberOfDay: before?.child("divenumberofday")?.textValue.flatMap { Int($0) },
+            internalDiveNumber: before?.child("internaldivenumber")?.textValue.flatMap { Int($0) },
             datetime: before?.stringValue("datetime"),
-            surfaceInterval: before?.child("surfaceintervalbeforedive")?.doubleValue("passedtime"),
+            altitude: before?.doubleValue("altitude"),
             surfacePressure: before?.doubleValue("surfacepressure"),
+            airTemperature: before?.doubleValue("airtemperature"),
+            surfaceInterval: surfaceInterval,
+            surfaceIntervalIsInfinity: isInfinity,
+            apparatus: before?.stringValue("apparatus").flatMap { UDDFApparatus(rawValue: $0) },
+            platform: before?.stringValue("platform").flatMap { UDDFPlatform(rawValue: $0) },
+            purpose: before?.stringValue("purpose").flatMap { UDDFPurpose(rawValue: $0) },
+            stateOfRest: before?.stringValue("stateofrestbeforedive").flatMap { UDDFStateOfRest(rawValue: $0) },
             siteRef: siteRef,
+            buddyRefs: allBeforeRefs,
             greatestDepth: after?.doubleValue("greatestdepth"),
             averageDepth: after?.doubleValue("averagedepth"),
             duration: after?.doubleValue("diveduration"),
+            lowestTemperature: after?.doubleValue("lowesttemperature"),
+            highestPO2: after?.doubleValue("highestpo2"),
             visibility: visibility,
+            desaturationTime: after?.doubleValue("desaturationtime"),
+            noFlightTime: after?.doubleValue("noflighttime"),
+            pressureDrop: after?.doubleValue("pressuredrop"),
+            current: after?.stringValue("current").flatMap { UDDFCurrent(rawValue: $0) },
+            thermalComfort: after?.stringValue("thermalcomfort").flatMap { UDDFThermalComfort(rawValue: $0) },
+            workload: after?.stringValue("workload").flatMap { UDDFWorkload(rawValue: $0) },
+            program: after?.stringValue("program").flatMap { UDDFProgram(rawValue: $0) },
+            rating: rating,
+            equipmentUsedRefs: equipmentUsedRefs,
             notes: notes,
             tanks: tanks,
             waypoints: waypoints
@@ -142,8 +180,6 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Site Ref
 
-    /// Shearwater puts multiple <link> refs in informationbeforedive:
-    /// profile, buddy, site, deco model, equipment. Match against known site IDs.
     func findSiteRef(_ before: XNode?, knownSiteIds: Set<String>) -> String? {
         guard let before else { return nil }
         let links = before.children("link")
@@ -152,12 +188,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 return ref
             }
         }
-        // Also check equipmentused sub-links are excluded
-        let topLevelLinks = before.children("link")
-        return topLevelLinks.first { link in
-            guard let ref = link.attribute("ref") else { return false }
-            return knownSiteIds.contains(ref)
-        }?.attribute("ref")
+        return nil
     }
 
     // MARK: - Tank Data
@@ -172,11 +203,12 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
             let endRaw = node.doubleValue("tankpressureend")
 
             let tank = UDDFTankData(
+                id: node.attribute("id"),
                 mixRef: mixRef,
-                tankRef: nil,
                 pressureBegin: cleanPressure(beginRaw),
                 pressureEnd: cleanPressure(endRaw),
-                volume: node.doubleValue("tankvolume")
+                volume: node.doubleValue("tankvolume"),
+                breathingConsumptionVolume: node.doubleValue("breathingconsumptionvolume")
             )
             tanks.append(tank)
         }
@@ -189,14 +221,13 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
     func parseWaypoints(_ samples: XNode?, diagnostics: inout [ParseDiagnostic]) -> [UDDFWaypoint] {
         guard let samples else { return [] }
         var waypoints: [UDDFWaypoint] = []
-        var currentMode: String?
+        var currentMode: UDDFDiveMode?
 
         for wp in samples.children("waypoint") {
-            let (tankPressure, tankRef) = parseTankPressure(wp)
+            let tankPressures = parseTankPressures(wp)
             let switchMixRef = wp.child("switchmix")?.attribute("ref")
 
-            // Dive mode: explicit from XML, or inferred from mix ref prefix
-            let explicitMode = wp.child("divemode")?.attribute("type")
+            let explicitMode = wp.child("divemode")?.attribute("type").flatMap { UDDFDiveMode(rawValue: $0) }
             let inferredMode = switchMixRef.flatMap { inferDiveMode(from: $0) }
             let diveMode = explicitMode ?? inferredMode ?? currentMode
 
@@ -204,7 +235,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 if let prevMode = currentMode, prevMode != newMode {
                     diagnostics.append(ParseDiagnostic(
                         level: .info,
-                        message: "Mode switch detected: \(prevMode) → \(newMode) via mix \(switchMixRef)",
+                        message: "Mode switch detected: \(prevMode.rawValue) → \(newMode.rawValue) via mix \(switchMixRef)",
                         context: "waypoint \(wp.doubleValue("divetime") ?? 0)s"
                     ))
                 }
@@ -217,20 +248,24 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 time: wp.doubleValue("divetime") ?? 0,
                 depth: wp.doubleValue("depth") ?? 0,
                 temperature: wp.doubleValue("temperature"),
-                tankPressure: tankPressure,
-                tankRef: tankRef,
+                tankPressures: tankPressures,
                 switchMixRef: switchMixRef,
                 diveMode: diveMode,
                 calculatedPO2: wp.doubleValue("calculatedpo2"),
                 measuredPO2: wp.doubleValue("measuredpo2"),
                 setPO2: wp.child("setpo2")?.textValue.flatMap { Double($0) },
+                setPO2SetBy: wp.child("setpo2")?.attribute("setby").flatMap { UDDFSetBySource(rawValue: $0) },
                 cns: wp.doubleValue("cns"),
                 ndl: wp.doubleValue("nodecotime"),
-                ceiling: wp.doubleValue("decostop"),
                 gradientFactor: wp.doubleValue("gradientfactor"),
                 heading: wp.doubleValue("heading"),
-                heartRate: wp.doubleValue("heartrate"),
-                alarm: wp.stringValue("alarm")
+                heartRate: wp.doubleValue("heartrate") ?? wp.doubleValue("pulserate"),
+                otu: wp.doubleValue("otu"),
+                bodyTemperature: wp.doubleValue("bodytemperature"),
+                batteryChargeCondition: wp.doubleValue("batterychargecondition"),
+                setMarker: wp.child("setmarker") != nil ? true : nil,
+                remainingBottomTime: wp.doubleValue("remainingbottomtime"),
+                remainingO2Time: wp.doubleValue("remainingo2time")
             )
             waypoints.append(waypoint)
         }
@@ -238,26 +273,22 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
         return waypoints
     }
 
-    /// Parse tank pressure from waypoint, stripping sentinel values.
-    func parseTankPressure(_ wp: XNode) -> (Double?, String?) {
+    /// Parse tank pressures, stripping sentinel values.
+    func parseTankPressures(_ wp: XNode) -> [UDDFTankPressure] {
         let tpNodes = wp.children("tankpressure")
-        if tpNodes.isEmpty {
-            return (nil, nil)
-        }
+        var pressures: [UDDFTankPressure] = []
         for tp in tpNodes {
             if let text = tp.textValue, let value = Double(text) {
-                let cleaned = cleanPressure(value)
-                if cleaned != nil {
-                    return (cleaned, tp.attribute("ref"))
+                if let cleaned = cleanPressure(value) {
+                    pressures.append(UDDFTankPressure(ref: tp.attribute("ref"), value: cleaned))
                 }
             }
         }
-        return (nil, tpNodes.first?.attribute("ref"))
+        return pressures
     }
 
     // MARK: - Pressure Sentinel
 
-    /// Strip Shearwater's sentinel value for "no data".
     func cleanPressure(_ value: Double?) -> Double? {
         guard let v = value else { return nil }
         if v == Self.pressureSentinel { return nil }
@@ -266,17 +297,13 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Visibility
 
-    /// Parse freeform visibility string. Shearwater passes user-entered text.
-    /// Regex: `(\d+\.?\d*)\s*(ft|feet|m|meters)?`
     func parseVisibility(_ after: XNode?, diagnostics: inout [ParseDiagnostic]) -> Double? {
         guard let text = after?.stringValue("visibility") else { return nil }
 
-        // Try numeric first (standard UDDF)
         if let value = Double(text) {
             return value
         }
 
-        // Freeform parsing
         let pattern = #"(\d+\.?\d*)\s*(ft|feet|m|meters)?"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
@@ -291,16 +318,14 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
         guard let number = Double(text[numberRange]) else { return nil }
 
-        // Check unit
         if match.range(at: 2).location != NSNotFound,
            let unitRange = Range(match.range(at: 2), in: text) {
             let unit = text[unitRange].lowercased()
             if unit == "ft" || unit == "feet" {
-                return number * 0.3048  // feet to meters
+                return number * 0.3048
             }
         }
 
-        // No unit or meters — assume meters per UDDF spec
         return number
     }
 
@@ -309,7 +334,6 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
     func parseNotes(_ after: XNode?) -> String? {
         guard let notes = after?.child("notes") else { return nil }
         let paras = notes.children("para").compactMap { $0.textValue }
-        // Filter out Shearwater metadata tags but preserve them for overflow
         let userNotes = paras.filter { !$0.hasPrefix("-Shearwater") }
         let joined = userNotes.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         return joined.isEmpty ? nil : joined

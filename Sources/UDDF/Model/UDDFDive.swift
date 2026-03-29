@@ -2,46 +2,115 @@ import Foundation
 
 // MARK: - Dive
 
+/// A single dive from `<profiledata><repetitiongroup><dive>`.
 public struct UDDFDive: Codable, Sendable {
     public let id: String?
-    // before
+    public let repetitionGroupId: String?
+
+    // MARK: informationbeforedive
+
     public let number: Int?
+    public let divenumberOfDay: Int?
+    public let internalDiveNumber: Int?
     public let datetime: String?
-    public let surfaceInterval: Double?
-    public let surfacePressure: Double?
+    public let altitude: Double?                    // meters
+    public let surfacePressure: Double?             // Pascals
+    public let airTemperature: Double?              // Kelvin
+    public let surfaceInterval: Double?             // seconds
+    public let surfaceIntervalIsInfinity: Bool?     // first dive of series
+    public let apparatus: UDDFApparatus?
+    public let platform: UDDFPlatform?
+    public let purpose: UDDFPurpose?
+    public let stateOfRest: UDDFStateOfRest?
     public let siteRef: String?
-    // after
-    public let greatestDepth: Double?
-    public let averageDepth: Double?
-    public let duration: Double?
-    public let visibility: Double?
+    public let buddyRefs: [String]
+    public let equipmentRefs: [String]
+
+    // MARK: informationafterdive
+
+    public let greatestDepth: Double?               // meters
+    public let averageDepth: Double?                // meters
+    public let duration: Double?                    // seconds
+    public let lowestTemperature: Double?           // Kelvin
+    public let highestPO2: Double?                  // Pascals
+    public let visibility: Double?                  // meters
+    public let desaturationTime: Double?            // seconds
+    public let noFlightTime: Double?                // seconds
+    public let pressureDrop: Double?                // Pascals
+    public let current: UDDFCurrent?
+    public let thermalComfort: UDDFThermalComfort?
+    public let workload: UDDFWorkload?
+    public let program: UDDFProgram?
+    public let rating: Double?
+    public let equipmentUsedRefs: [String]
+    public let surfaceIntervalAfterDive: Double?    // seconds
     public let notes: String?
-    // tank data
+
+    // MARK: tankdata + samples
+
     public let tanks: [UDDFTankData]
-    // samples
     public let waypoints: [UDDFWaypoint]
-    // overflow (unconsumed elements)
     public let overflow: [String: String]?
 
     public init(
-        id: String? = nil, number: Int? = nil, datetime: String? = nil,
-        surfaceInterval: Double? = nil, surfacePressure: Double? = nil,
-        siteRef: String? = nil, greatestDepth: Double? = nil,
-        averageDepth: Double? = nil, duration: Double? = nil,
-        visibility: Double? = nil, notes: String? = nil,
+        id: String? = nil, repetitionGroupId: String? = nil,
+        // before
+        number: Int? = nil, divenumberOfDay: Int? = nil,
+        internalDiveNumber: Int? = nil, datetime: String? = nil,
+        altitude: Double? = nil, surfacePressure: Double? = nil,
+        airTemperature: Double? = nil, surfaceInterval: Double? = nil,
+        surfaceIntervalIsInfinity: Bool? = nil,
+        apparatus: UDDFApparatus? = nil, platform: UDDFPlatform? = nil,
+        purpose: UDDFPurpose? = nil, stateOfRest: UDDFStateOfRest? = nil,
+        siteRef: String? = nil, buddyRefs: [String] = [], equipmentRefs: [String] = [],
+        // after
+        greatestDepth: Double? = nil, averageDepth: Double? = nil,
+        duration: Double? = nil, lowestTemperature: Double? = nil,
+        highestPO2: Double? = nil, visibility: Double? = nil,
+        desaturationTime: Double? = nil, noFlightTime: Double? = nil,
+        pressureDrop: Double? = nil, current: UDDFCurrent? = nil,
+        thermalComfort: UDDFThermalComfort? = nil, workload: UDDFWorkload? = nil,
+        program: UDDFProgram? = nil, rating: Double? = nil,
+        equipmentUsedRefs: [String] = [],
+        surfaceIntervalAfterDive: Double? = nil, notes: String? = nil,
+        // data
         tanks: [UDDFTankData] = [], waypoints: [UDDFWaypoint] = [],
         overflow: [String: String]? = nil
     ) {
         self.id = id
+        self.repetitionGroupId = repetitionGroupId
         self.number = number
+        self.divenumberOfDay = divenumberOfDay
+        self.internalDiveNumber = internalDiveNumber
         self.datetime = datetime
-        self.surfaceInterval = surfaceInterval
+        self.altitude = altitude
         self.surfacePressure = surfacePressure
+        self.airTemperature = airTemperature
+        self.surfaceInterval = surfaceInterval
+        self.surfaceIntervalIsInfinity = surfaceIntervalIsInfinity
+        self.apparatus = apparatus
+        self.platform = platform
+        self.purpose = purpose
+        self.stateOfRest = stateOfRest
         self.siteRef = siteRef
+        self.buddyRefs = buddyRefs
+        self.equipmentRefs = equipmentRefs
         self.greatestDepth = greatestDepth
         self.averageDepth = averageDepth
         self.duration = duration
+        self.lowestTemperature = lowestTemperature
+        self.highestPO2 = highestPO2
         self.visibility = visibility
+        self.desaturationTime = desaturationTime
+        self.noFlightTime = noFlightTime
+        self.pressureDrop = pressureDrop
+        self.current = current
+        self.thermalComfort = thermalComfort
+        self.workload = workload
+        self.program = program
+        self.rating = rating
+        self.equipmentUsedRefs = equipmentUsedRefs
+        self.surfaceIntervalAfterDive = surfaceIntervalAfterDive
         self.notes = notes
         self.tanks = tanks
         self.waypoints = waypoints
@@ -51,22 +120,27 @@ public struct UDDFDive: Codable, Sendable {
 
 // MARK: - Tank Data
 
+/// Tank data from `<tankdata>` element (child of `<dive>`).
 public struct UDDFTankData: Codable, Sendable {
+    public let id: String?
     public let mixRef: String?
     public let tankRef: String?
-    public let pressureBegin: Double?
-    public let pressureEnd: Double?
-    public let volume: Double?
+    public let pressureBegin: Double?               // Pascals
+    public let pressureEnd: Double?                 // Pascals
+    public let volume: Double?                      // cubic meters
+    public let breathingConsumptionVolume: Double?   // m³/s
 
     public init(
-        mixRef: String? = nil, tankRef: String? = nil,
+        id: String? = nil, mixRef: String? = nil, tankRef: String? = nil,
         pressureBegin: Double? = nil, pressureEnd: Double? = nil,
-        volume: Double? = nil
+        volume: Double? = nil, breathingConsumptionVolume: Double? = nil
     ) {
+        self.id = id
         self.mixRef = mixRef
         self.tankRef = tankRef
         self.pressureBegin = pressureBegin
         self.pressureEnd = pressureEnd
         self.volume = volume
+        self.breathingConsumptionVolume = breathingConsumptionVolume
     }
 }
