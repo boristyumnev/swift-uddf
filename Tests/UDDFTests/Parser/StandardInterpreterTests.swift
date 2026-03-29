@@ -36,10 +36,12 @@ struct StandardInterpreterTests {
         #expect(air != nil)
         #expect(air?.o2 == 0.21)
         #expect(air?.he == 0)
+        #expect(air?.n2 == 0.79)
 
         let ean32 = result.document.mixes["ean32"]
         #expect(ean32 != nil)
         #expect(ean32?.o2 == 0.32)
+        #expect(ean32?.n2 == 0.68)
     }
 
     // MARK: - Sites
@@ -105,18 +107,28 @@ struct StandardInterpreterTests {
         #expect(wp[0].time == 0)
         #expect(wp[0].temperature == 288.15)
         #expect(wp[0].switchMixRef == "air")
-        #expect(wp[0].diveMode == "opencircuit")
+        #expect(wp[0].diveMode == .opencircuit)
 
         // Mid-dive waypoint with PO2 and NDL
         #expect(wp[2].depth == 20.0)
         #expect(wp[2].time == 120)
         #expect(wp[2].calculatedPO2 == 0.63)
         #expect(wp[2].ndl == 600)
-        #expect(wp[2].tankPressure == 17500000)
+        #expect(wp[2].tankPressures.first?.value == 17500000)
+        #expect(wp[2].tankPressures.first?.ref == "T1")
 
         // Last waypoint — surface
         #expect(wp[4].depth == 0)
         #expect(wp[4].time == 240)
+    }
+
+    // MARK: - Owner, Buddies, DiveBases (minimal has none)
+
+    @Test func minimalHasNoOwnerOrBuddies() throws {
+        let result = try parseMinimal()
+        #expect(result.document.owner == nil)
+        #expect(result.document.buddies.isEmpty)
+        #expect(result.document.diveBases.isEmpty)
     }
 
     // MARK: - Diagnostics

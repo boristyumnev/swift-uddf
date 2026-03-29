@@ -43,7 +43,7 @@ struct UDDFParserTests {
         let doc = result.document
         #expect(doc.dives.count == 1)
         #expect(doc.mixes.count == 2)
-        #expect(doc.dives[0].waypoints[0].diveMode == "closedcircuit")
+        #expect(doc.dives[0].waypoints[0].diveMode == .closedcircuit)
     }
 
     // MARK: - Public API: Subsurface
@@ -178,19 +178,32 @@ struct UDDFParserTests {
         let site = result.document.sites.values.first
         #expect(site?.name == "Seacrest Cove 2")
         #expect(site?.latitude == 47.58892)
+        #expect(site?.altitude == 0) // altitude is in site/geography
 
         // First waypoint
         let wp0 = dive.waypoints[0]
         #expect(wp0.depth == 0)
         #expect(wp0.temperature == 287.15)
         #expect(wp0.switchMixRef == "OC1:32/00")
-        #expect(wp0.diveMode == "opencircuit")
-        #expect(wp0.tankPressure != nil)
-        #expect(wp0.tankPressure != 56247452) // sentinel stripped
+        #expect(wp0.diveMode == .opencircuit)
+        #expect(wp0.tankPressures.first?.value != nil)
+        #expect(wp0.tankPressures.first?.value != 56247452) // sentinel stripped
+        #expect(wp0.tankPressures.first?.ref == "T1")
 
-        // Visibility (Shearwater freeform "40 ft" → meters)
+        // Visibility (Shearwater freeform "40 ft" -> meters)
         #expect(dive.visibility != nil)
         #expect(abs(dive.visibility! - 12.192) < 0.01)
+
+        // Owner + buddy
+        #expect(result.document.owner != nil)
+        #expect(result.document.owner?.equipment?.diveComputer?.name == "Perdix 2")
+        #expect(result.document.buddies.count == 1)
+        #expect(result.document.buddies[0].id == "Buddy A")
+        #expect(result.document.buddies[0].personal?.firstName == "Buddy A")
+
+        // Mix has n2=nil (Shearwater doesn't include it)
+        let mix = result.document.mixes["OC1:32/00"]
+        #expect(mix?.n2 == nil)
     }
 
     @Test func dive105_groundTruth() throws {
@@ -203,7 +216,7 @@ struct UDDFParserTests {
         #expect(result.document.mixes["OC1:32/00"]?.o2 == 0.32)
 
         // First waypoint is CCR
-        #expect(dive.waypoints[0].diveMode == "closedcircuit")
+        #expect(dive.waypoints[0].diveMode == .closedcircuit)
         #expect(dive.waypoints[0].switchMixRef == "CC1:21/00")
 
         // There's a bailout switch somewhere
@@ -213,6 +226,355 @@ struct UDDFParserTests {
         // Mode switch diagnostic was emitted
         let modeSwitch = result.diagnostics.first { $0.message.contains("Mode switch") }
         #expect(modeSwitch != nil)
+
+        // Buddy
+        #expect(result.document.buddies.count == 1)
+        #expect(result.document.buddies[0].id == "Buddy B")
+        #expect(result.document.buddies[0].personal?.firstName == "Buddy B")
+
+        // Site density NOT in site data
+        let site = result.document.sites.values.first
+        #expect(site?.density == nil)
+    }
+
+    // MARK: - Synthetic XML: Enum parsing
+
+    @Test func syntheticDiveModeEnum() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <profiledata>
+                <repetitiongroup>
+                    <dive>
+                        <samples>
+                            <waypoint>
+                                <depth>5</depth><divetime>0</divetime>
+                                <divemode type="opencircuit"/>
+                            </waypoint>
+                            <waypoint>
+                                <depth>10</depth><divetime>60</divetime>
+                                <divemode type="closedcircuit"/>
+                            </waypoint>
+                            <waypoint>
+                                <depth>8</depth><divetime>120</divetime>
+                                <divemode type="semiclosedcircuit"/>
+                            </waypoint>
+                            <waypoint>
+                                <depth>3</depth><divetime>180</divetime>
+                                <divemode type="apnea"/>
+                            </waypoint>
+                        </samples>
+                        <informationafterdive><greatestdepth>10</greatestdepth></informationafterdive>
+                    </dive>
+                </repetitiongroup>
+            </profiledata>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let wps = result.document.dives[0].waypoints
+        #expect(wps[0].diveMode == .opencircuit)
+        #expect(wps[1].diveMode == .closedcircuit)
+        #expect(wps[2].diveMode == .semiclosedcircuit)
+        #expect(wps[3].diveMode == .apnea)
+    }
+
+    // MARK: - Synthetic XML: Deco Stops
+
+    @Test func syntheticDecoStops() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <profiledata>
+                <repetitiongroup>
+                    <dive>
+                        <samples>
+                            <waypoint>
+                                <depth>30</depth><divetime>600</divetime>
+                                <decostop kind="mandatory" decodepth="6" duration="180"/>
+                                <decostop kind="safety" decodepth="3" duration="60"/>
+                            </waypoint>
+                        </samples>
+                        <informationafterdive><greatestdepth>30</greatestdepth></informationafterdive>
+                    </dive>
+                </repetitiongroup>
+            </profiledata>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let wp = result.document.dives[0].waypoints[0]
+        #expect(wp.decoStops.count == 2)
+        #expect(wp.decoStops[0].kind == .mandatory)
+        #expect(wp.decoStops[0].depth == 6)
+        #expect(wp.decoStops[0].duration == 180)
+        #expect(wp.decoStops[1].kind == .safety)
+        #expect(wp.decoStops[1].depth == 3)
+        #expect(wp.decoStops[1].duration == 60)
+    }
+
+    // MARK: - Synthetic XML: Alarms
+
+    @Test func syntheticAlarms() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <profiledata>
+                <repetitiongroup>
+                    <dive>
+                        <samples>
+                            <waypoint>
+                                <depth>25</depth><divetime>300</divetime>
+                                <alarm>ascent</alarm>
+                                <alarm>deco</alarm>
+                            </waypoint>
+                        </samples>
+                        <informationafterdive><greatestdepth>25</greatestdepth></informationafterdive>
+                    </dive>
+                </repetitiongroup>
+            </profiledata>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let wp = result.document.dives[0].waypoints[0]
+        #expect(wp.alarms.count == 2)
+        #expect(wp.alarms[0].type == .ascent)
+        #expect(wp.alarms[0].message == "ascent")
+        #expect(wp.alarms[1].type == .deco)
+        #expect(wp.alarms[1].message == "deco")
+    }
+
+    // MARK: - Synthetic XML: Unknown alarm type
+
+    @Test func syntheticUnknownAlarm() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <profiledata>
+                <repetitiongroup>
+                    <dive>
+                        <samples>
+                            <waypoint>
+                                <depth>20</depth><divetime>200</divetime>
+                                <alarm>custom_alarm_xyz</alarm>
+                            </waypoint>
+                        </samples>
+                        <informationafterdive><greatestdepth>20</greatestdepth></informationafterdive>
+                    </dive>
+                </repetitiongroup>
+            </profiledata>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let wp = result.document.dives[0].waypoints[0]
+        #expect(wp.alarms.count == 1)
+        #expect(wp.alarms[0].type == nil)
+        #expect(wp.alarms[0].message == "custom_alarm_xyz")
+    }
+
+    // MARK: - Synthetic XML: Owner + Buddies + DiveBases
+
+    @Test func syntheticOwnerBuddiesDiveBases() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <diver>
+                <owner>
+                    <personal>
+                        <firstname>Jane</firstname>
+                        <lastname>Doe</lastname>
+                    </personal>
+                    <equipment>
+                        <divecomputer id="dc1">
+                            <name>Perdix</name>
+                            <serialnumber>12345</serialnumber>
+                        </divecomputer>
+                    </equipment>
+                </owner>
+                <buddy id="b1">
+                    <personal><firstname>Bob</firstname></personal>
+                </buddy>
+                <buddy id="b2">
+                    <personal><lastname>Smith</lastname></personal>
+                </buddy>
+            </diver>
+            <divesite>
+                <divebase id="base1">
+                    <name>Reef Base</name>
+                </divebase>
+                <site id="s1"><name>Reef</name></site>
+            </divesite>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let doc = result.document
+
+        // Owner
+        #expect(doc.owner?.personal?.firstName == "Jane")
+        #expect(doc.owner?.personal?.lastName == "Doe")
+        #expect(doc.owner?.equipment?.diveComputer?.name == "Perdix")
+        #expect(doc.owner?.equipment?.diveComputer?.serialNumber == "12345")
+
+        // Buddies
+        #expect(doc.buddies.count == 2)
+        #expect(doc.buddies[0].id == "b1")
+        #expect(doc.buddies[0].personal?.firstName == "Bob")
+        #expect(doc.buddies[1].id == "b2")
+        #expect(doc.buddies[1].personal?.lastName == "Smith")
+
+        // DiveBases
+        #expect(doc.diveBases.count == 1)
+        #expect(doc.diveBases[0].id == "base1")
+        #expect(doc.diveBases[0].name == "Reef Base")
+    }
+
+    // MARK: - Synthetic XML: Surface interval infinity
+
+    @Test func syntheticSurfaceIntervalInfinity() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <profiledata>
+                <repetitiongroup>
+                    <dive>
+                        <informationbeforedive>
+                            <surfaceintervalbeforedive><infinity/></surfaceintervalbeforedive>
+                        </informationbeforedive>
+                        <samples>
+                            <waypoint><depth>5</depth><divetime>30</divetime></waypoint>
+                        </samples>
+                        <informationafterdive><greatestdepth>5</greatestdepth></informationafterdive>
+                    </dive>
+                </repetitiongroup>
+            </profiledata>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let dive = result.document.dives[0]
+        #expect(dive.surfaceIntervalIsInfinity == true)
+        #expect(dive.surfaceInterval == nil)
+    }
+
+    // MARK: - Synthetic XML: Tank data with id and breathingConsumptionVolume
+
+    @Test func syntheticTankDataExtendedFields() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <gasdefinitions>
+                <mix id="air"><o2>0.21</o2><he>0</he></mix>
+            </gasdefinitions>
+            <profiledata>
+                <repetitiongroup>
+                    <dive>
+                        <tankdata id="tank1">
+                            <link ref="air"/>
+                            <tankpressurebegin>20000000</tankpressurebegin>
+                            <tankpressureend>10000000</tankpressureend>
+                            <tankvolume>0.012</tankvolume>
+                            <breathingconsumptionvolume>0.0003</breathingconsumptionvolume>
+                        </tankdata>
+                        <samples>
+                            <waypoint><depth>10</depth><divetime>60</divetime></waypoint>
+                        </samples>
+                        <informationafterdive><greatestdepth>10</greatestdepth></informationafterdive>
+                    </dive>
+                </repetitiongroup>
+            </profiledata>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let tank = result.document.dives[0].tanks[0]
+        #expect(tank.id == "tank1")
+        #expect(tank.mixRef == "air")
+        #expect(tank.pressureBegin == 20000000)
+        #expect(tank.pressureEnd == 10000000)
+        #expect(tank.volume == 0.012)
+        #expect(tank.breathingConsumptionVolume == 0.0003)
+    }
+
+    // MARK: - Synthetic XML: Generator with type and datetime
+
+    @Test func syntheticGeneratorTypeAndDatetime() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator>
+                <name>TestApp</name>
+                <type>logbook</type>
+                <version>2.0</version>
+                <datetime>2025-01-15T10:00:00</datetime>
+            </generator>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        #expect(result.document.generator.name == "TestApp")
+        #expect(result.document.generator.type == "logbook")
+        #expect(result.document.generator.version == "2.0")
+        #expect(result.document.generator.datetime == "2025-01-15T10:00:00")
+    }
+
+    // MARK: - Synthetic XML: Site with extended fields
+
+    @Test func syntheticSiteExtendedFields() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <divesite>
+                <site id="s1">
+                    <name>Crystal Lake</name>
+                    <environment>lake-quarry</environment>
+                    <geography>
+                        <location>Pacific Northwest</location>
+                        <latitude>47.5</latitude>
+                        <longitude>-122.3</longitude>
+                    </geography>
+                    <sitedata>
+                        <maximumdepth>45.0</maximumdepth>
+                        <minimumdepth>2.0</minimumdepth>
+                        <density>1025</density>
+                        <bottom>sandy</bottom>
+                    </sitedata>
+                    <notes><para>Great viz in summer</para></notes>
+                </site>
+            </divesite>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let site = result.document.sites["s1"]
+        #expect(site?.name == "Crystal Lake")
+        #expect(site?.environment == .lakeQuarry)
+        #expect(site?.location == "Pacific Northwest")
+        #expect(site?.maximumDepth == 45.0)
+        #expect(site?.minimumDepth == 2.0)
+        #expect(site?.density == 1025)
+        #expect(site?.bottom == "sandy")
+        #expect(site?.notes == "Great viz in summer")
+    }
+
+    // MARK: - Synthetic XML: Mix with n2
+
+    @Test func syntheticMixWithN2() throws {
+        let xml = """
+        <uddf version="3.2.3">
+            <generator><name>Test</name></generator>
+            <gasdefinitions>
+                <mix id="air">
+                    <o2>0.21</o2>
+                    <n2>0.79</n2>
+                    <he>0</he>
+                </mix>
+                <mix id="tmx1845">
+                    <o2>0.18</o2>
+                    <n2>0.37</n2>
+                    <he>0.45</he>
+                </mix>
+            </gasdefinitions>
+        </uddf>
+        """
+        let result = try UDDFParser.parse(data: Data(xml.utf8))
+        let air = result.document.mixes["air"]
+        #expect(air?.n2 == 0.79)
+        let tmx = result.document.mixes["tmx1845"]
+        #expect(tmx?.n2 == 0.37)
+        #expect(tmx?.he == 0.45)
     }
 }
 

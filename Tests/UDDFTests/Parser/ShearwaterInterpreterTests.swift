@@ -37,12 +37,12 @@ struct ShearwaterInterpreterTests {
 
     @Test func inferOCMode() {
         let interp = ShearwaterInterpreter()
-        #expect(interp.inferDiveMode(from: "OC1:32/00") == "opencircuit")
+        #expect(interp.inferDiveMode(from: "OC1:32/00") == .opencircuit)
     }
 
     @Test func inferCCMode() {
         let interp = ShearwaterInterpreter()
-        #expect(interp.inferDiveMode(from: "CC1:21/00") == "closedcircuit")
+        #expect(interp.inferDiveMode(from: "CC1:21/00") == .closedcircuit)
     }
 
     @Test func inferModeFromPlainRef() {
@@ -76,6 +76,8 @@ struct ShearwaterInterpreterTests {
         let mix = result.document.mixes["OC1:32/00"]
         #expect(mix?.o2 == 0.32)
         #expect(mix?.he == 0.0)
+        // Shearwater doesn't include n2 in XML
+        #expect(mix?.n2 == nil)
     }
 
     @Test func dive31_site() throws {
@@ -96,6 +98,13 @@ struct ShearwaterInterpreterTests {
         #expect(dive.siteRef == "Seacrest Cove 2 : Alki Beach, WA")
     }
 
+    @Test func dive31_siteAltitude() throws {
+        let result = try parseFile("dive31")
+        // altitude=0 is in site/geography, not informationbeforedive
+        let site = result.document.sites.values.first
+        #expect(site?.altitude == 0)
+    }
+
     @Test func dive31_waypointCount() throws {
         let result = try parseFile("dive31")
         #expect(result.document.dives[0].waypoints.count == 226)
@@ -108,24 +117,48 @@ struct ShearwaterInterpreterTests {
         #expect(wp.time == 0)
         #expect(wp.temperature == 287.15)
         #expect(wp.switchMixRef == "OC1:32/00")
-        #expect(wp.diveMode == "opencircuit")
+        #expect(wp.diveMode == .opencircuit)
     }
 
     @Test func dive31_tankPressureSentinelStripped() throws {
         let result = try parseFile("dive31")
         let wp = result.document.dives[0].waypoints[0]
         // T1 should have real pressure, T3/T4 were sentinels — we take T1
-        #expect(wp.tankPressure != nil)
-        #expect(wp.tankPressure != 56247452)
-        #expect(wp.tankRef == "T1")
+        #expect(wp.tankPressures.first?.value != nil)
+        #expect(wp.tankPressures.first?.value != 56247452)
+        #expect(wp.tankPressures.first?.ref == "T1")
     }
 
     @Test func dive31_visibility() throws {
         let result = try parseFile("dive31")
         let dive = result.document.dives[0]
-        // "40 ft" → 12.192 meters
+        // "40 ft" -> 12.192 meters
         #expect(dive.visibility != nil)
         #expect(abs(dive.visibility! - 12.192) < 0.01)
+    }
+
+    // MARK: - Dive31 Owner & Buddy
+
+    @Test func dive31_owner() throws {
+        let result = try parseFile("dive31")
+        let owner = result.document.owner
+        #expect(owner != nil)
+        #expect(owner?.equipment?.diveComputer?.name == "Perdix 2")
+    }
+
+    @Test func dive31_buddy() throws {
+        let result = try parseFile("dive31")
+        #expect(result.document.buddies.count == 1)
+        let buddy = result.document.buddies[0]
+        #expect(buddy.id == "Buddy A")
+        #expect(buddy.personal?.firstName == "Buddy A")
+    }
+
+    @Test func dive31_siteDensityNotInSiteData() throws {
+        let result = try parseFile("dive31")
+        // density=1020 is in calculateprofile, NOT in site data
+        let site = result.document.sites.values.first
+        #expect(site?.density == nil)
     }
 
     // MARK: - Dive105 (CCR Dive)
@@ -140,7 +173,7 @@ struct ShearwaterInterpreterTests {
     @Test func dive105_initialModeCCR() throws {
         let result = try parseFile("dive105")
         let firstWp = result.document.dives[0].waypoints[0]
-        #expect(firstWp.diveMode == "closedcircuit")
+        #expect(firstWp.diveMode == .closedcircuit)
         #expect(firstWp.switchMixRef == "CC1:21/00")
     }
 
@@ -155,14 +188,14 @@ struct ShearwaterInterpreterTests {
         // After bailout, subsequent waypoints should be inferred as opencircuit
         if let bailoutIdx = waypoints.firstIndex(where: { $0.switchMixRef == "OC1:32/00" }) {
             let afterBailout = waypoints[bailoutIdx + 1]
-            #expect(afterBailout.diveMode == "opencircuit")
+            #expect(afterBailout.diveMode == .opencircuit)
         }
     }
 
     @Test func dive105_visibility() throws {
         let result = try parseFile("dive105")
         let dive = result.document.dives[0]
-        // "20 ft" → 6.096 meters
+        // "20 ft" -> 6.096 meters
         #expect(dive.visibility != nil)
         #expect(abs(dive.visibility! - 6.096) < 0.01)
     }
@@ -173,6 +206,21 @@ struct ShearwaterInterpreterTests {
             $0.message.contains("Mode switch")
         }
         #expect(modeSwitch != nil)
+    }
+
+    @Test func dive105_buddy() throws {
+        let result = try parseFile("dive105")
+        #expect(result.document.buddies.count == 1)
+        let buddy = result.document.buddies[0]
+        #expect(buddy.id == "Buddy B")
+        #expect(buddy.personal?.firstName == "Buddy B")
+    }
+
+    @Test func dive105_siteDensityNotInSiteData() throws {
+        let result = try parseFile("dive105")
+        // density=1020 is in calculateprofile, NOT in site data
+        let site = result.document.sites.values.first
+        #expect(site?.density == nil)
     }
 
     // MARK: - Generator Detection
