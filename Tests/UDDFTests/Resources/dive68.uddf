@@ -60,9 +60,9 @@
         </divecomputer>
       </equipment>
     </owner>
-    <buddy id="Maddux Tillman">
+    <buddy id="Buddy A">
       <personal>
-        <firstname>Maddux Tillman</firstname>
+        <firstname>Buddy A</firstname>
       </personal>
     </buddy>
   </diver>
