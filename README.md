@@ -24,7 +24,7 @@ A Swift library for parsing [UDDF](https://uddf.org) (Universal Dive Data Format
 Add to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/bumnov/swift-uddf.git", from: "0.1.0")
+.package(url: "https://github.com/boristyumnev/swift-uddf.git", from: "0.1.0")
 ```
 
 Then add `"UDDF"` to your target's dependencies:
