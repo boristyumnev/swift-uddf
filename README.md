@@ -126,10 +126,6 @@ public struct MyDiveComputerInterpreter: UDDFInterpreting {
 }
 ```
 
-## Contributing
-
-PRs welcome. If you have UDDF files from dive computers not yet supported, please open an issue — test fixtures from real hardware are especially valuable.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
