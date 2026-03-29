@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<uddf version="3.2.3">
+  <generator>
+    <name>TestGenerator</name>
+    <version>1.0</version>
+  </generator>
+  <divesite>
+    <site id="site1">
+      <name>Test Reef</name>
+      <geography>
+        <latitude>47.5</latitude>
+        <longitude>-122.3</longitude>
+      </geography>
+    </site>
+  </divesite>
+  <gasdefinitions>
+    <mix id="air">
+      <name>Air</name>
+      <o2>0.21</o2>
+      <n2>0.79</n2>
+      <he>0</he>
+    </mix>
+    <mix id="ean32">
+      <name>EAN32</name>
+      <o2>0.32</o2>
+      <n2>0.68</n2>
+      <he>0</he>
+    </mix>
+  </gasdefinitions>
+  <profiledata>
+    <repetitiongroup>
+      <dive id="dive1">
+        <informationbeforedive>
+          <link ref="site1" />
+          <divenumber>1</divenumber>
+          <datetime>2025-06-15T14:30:00Z</datetime>
+          <surfacepressure>101325</surfacepressure>
+        </informationbeforedive>
+        <tankdata>
+          <link ref="air" />
+          <tankpressurebegin>20684000</tankpressurebegin>
+          <tankpressureend>10342000</tankpressureend>
+        </tankdata>
+        <samples>
+          <waypoint>
+            <depth>0</depth>
+            <divetime>0</divetime>
+            <temperature>288.15</temperature>
+            <switchmix ref="air" />
+            <divemode type="opencircuit" />
+          </waypoint>
+          <waypoint>
+            <depth>10.0</depth>
+            <divetime>60</divetime>
+            <temperature>286.15</temperature>
+            <tankpressure ref="T1">19000000</tankpressure>
+          </waypoint>
+          <waypoint>
+            <depth>20.0</depth>
+            <divetime>120</divetime>
+            <temperature>285.15</temperature>
+            <tankpressure ref="T1">17500000</tankpressure>
+            <calculatedpo2>0.63</calculatedpo2>
+            <nodecotime>600</nodecotime>
+          </waypoint>
+          <waypoint>
+            <depth>10.0</depth>
+            <divetime>180</divetime>
+            <temperature>286.15</temperature>
+            <tankpressure ref="T1">15000000</tankpressure>
+          </waypoint>
+          <waypoint>
+            <depth>0</depth>
+            <divetime>240</divetime>
+            <temperature>288.15</temperature>
+          </waypoint>
+        </samples>
+        <informationafterdive>
+          <greatestdepth>20.0</greatestdepth>
+          <averagedepth>10.0</averagedepth>
+          <diveduration>240</diveduration>
+        </informationafterdive>
+      </dive>
+    </repetitiongroup>
+  </profiledata>
+</uddf>
