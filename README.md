@@ -77,7 +77,7 @@ Two-layer pipeline:
 |-----------|--------|----------------|
 | Standard UDDF 3.2 | Full | Baseline spec compliance |
 | Shearwater Cloud | Full | Compound mix IDs, pressure sentinels, freeform visibility, dive mode inference |
-| Subsurface | Basic | Delegates to standard (contributions welcome) |
+| Subsurface | Basic | Delegates to standard |
 
 ### Units
 
