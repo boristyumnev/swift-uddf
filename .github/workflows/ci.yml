@@ -25,6 +25,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: List available simulators
+        run: xcrun simctl list devices available | head -30
       - name: Build for iOS
         run: |
           xcodebuild build \
@@ -35,9 +37,15 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
       - name: Test on iOS Simulator
         run: |
+          DEST=$(xcodebuild -scheme swift-uddf -showdestinations 2>/dev/null \
+            | grep 'iOS Simulator' \
+            | grep 'iPhone' \
+            | head -1 \
+            | sed 's/.*{ //' | sed 's/ }$//')
+          echo "Using destination: $DEST"
           xcodebuild test \
             -scheme swift-uddf \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "$DEST" \
             CODE_SIGN_IDENTITY=- \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -51,10 +59,8 @@ jobs:
         include:
           - platform: macOS
             destination: "generic/platform=macOS"
-          - platform: iOS 17
-            destination: "generic/platform=iOS Simulator,OS=17.5"
-          - platform: iOS 18
-            destination: "generic/platform=iOS Simulator,OS=18.4"
+          - platform: iOS
+            destination: "generic/platform=iOS Simulator"
     steps:
       - uses: actions/checkout@v4
       - name: Build
