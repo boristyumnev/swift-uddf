@@ -6,7 +6,7 @@ A Swift library for parsing [UDDF](https://uddf.org) (Universal Dive Data Format
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%2014%20|%20iOS%2017-blue.svg)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Status: Experimental (v0.1.0).** This library is functional and tested against real dive files, but the API may change as we learn from broader usage and additional dive computer formats. Pin your dependency to a specific version if you need stability.
+> **Status: Experimental** This library is functional and tested against real dive files, but the API may change as we learn from broader usage and additional dive computer formats. Pin your dependency to a specific version if you need stability.
 
 ## Features
 
