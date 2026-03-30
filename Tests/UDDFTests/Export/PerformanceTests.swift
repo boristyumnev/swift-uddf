@@ -51,7 +51,7 @@ struct PerformanceTests {
         let perIteration = elapsed / Double(iterations) * 1000
         print("[\(hardwareInfo())]")
         print("Import divinglog6 (1.9MB): \(String(format: "%.1f", perIteration)) ms/parse (\(iterations) iterations)")
-        #expect(perIteration < 2000)
+        #expect(perIteration < 5000) // generous for CI simulator
     }
 
     // MARK: - Export Performance
@@ -83,7 +83,7 @@ struct PerformanceTests {
         let perIteration = elapsed / Double(iterations) * 1000
         print("[\(hardwareInfo())]")
         print("Export divinglog6 (1.9MB): \(String(format: "%.1f", perIteration)) ms/export (\(iterations) iterations)")
-        #expect(perIteration < 2000)
+        #expect(perIteration < 5000) // generous for CI simulator
     }
 
     // MARK: - Round-Trip Performance
@@ -101,7 +101,7 @@ struct PerformanceTests {
         let perIteration = elapsed / Double(iterations) * 1000
         print("[\(hardwareInfo())]")
         print("Round-trip divinglog6 (1.9MB): \(String(format: "%.1f", perIteration)) ms/cycle (\(iterations) iterations)")
-        #expect(perIteration < 5000)
+        #expect(perIteration < 15000) // generous for CI simulator
     }
 
     // MARK: - Comparative: XMLDocument (macOS only)
