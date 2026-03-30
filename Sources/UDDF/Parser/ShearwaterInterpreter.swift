@@ -25,9 +25,9 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
         let version = tree.attribute("version") ?? "unknown"
         let generator = standard.parseGenerator(tree, diagnostics: &diagnostics)
-        let (owner, buddies) = standard.parseDiver(tree)
+        let (owner, buddies) = standard.parseDiver(tree, diagnostics: &diagnostics)
         let mixes = parseMixes(tree, diagnostics: &diagnostics)
-        let (sites, diveBases) = standard.parseSites(tree)
+        let (sites, diveBases) = standard.parseSites(tree, diagnostics: &diagnostics)
         let decoModels = standard.parseDecoModels(tree)
         let dives = parseDives(tree, knownSiteIds: Set(sites.keys), mixes: mixes, diagnostics: &diagnostics)
 
@@ -272,7 +272,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
             let measuredPO2s = standard.parseSensorReadings(wp, elementName: "measuredpo2")
             let batteryVoltages = standard.parseSensorReadings(wp, elementName: "batteryvoltage")
             let scrubberReadings = standard.parseSensorReadings(wp, elementName: "scrubber")
-            let decoStops = standard.parseDecoStops(wp)
+            let decoStops = standard.parseDecoStops(wp, diagnostics: &diagnostics)
 
             let waypoint = UDDFWaypoint(
                 time: wp.doubleValue("divetime") ?? 0,

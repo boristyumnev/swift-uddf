@@ -11,11 +11,11 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
         let version = tree.attribute("version") ?? "unknown"
         let generator = parseGenerator(tree, diagnostics: &diagnostics)
-        let (owner, buddies) = parseDiver(tree)
+        let (owner, buddies) = parseDiver(tree, diagnostics: &diagnostics)
         let mixes = parseMixes(tree)
-        let (sites, diveBases) = parseSites(tree)
+        let (sites, diveBases) = parseSites(tree, diagnostics: &diagnostics)
         let decoModels = parseDecoModels(tree)
-        let dives = parseDives(tree)
+        let dives = parseDives(tree, diagnostics: &diagnostics)
 
         diagnostics.insert(
             ParseDiagnostic(
@@ -39,6 +39,25 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         )
 
         return ParseResult(document: document, diagnostics: diagnostics)
+    }
+
+    // MARK: - Enum Parsing Helper
+
+    /// Parse a raw string into an enum, emitting a diagnostic warning if the value is unrecognized.
+    func parseEnum<E: RawRepresentable>(
+        _ raw: String?,
+        as type: E.Type,
+        path: String,
+        diagnostics: inout [ParseDiagnostic]
+    ) -> E? where E.RawValue == String {
+        guard let raw, !raw.isEmpty else { return nil }
+        if let value = E(rawValue: raw) { return value }
+        diagnostics.append(ParseDiagnostic(
+            level: .warning,
+            message: "Unknown \(path) value: \"\(raw)\"",
+            context: path
+        ))
+        return nil
     }
 
     // MARK: - Generator
@@ -72,16 +91,16 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Diver (Owner + Buddies)
 
-    func parseDiver(_ tree: XNode) -> (UDDFOwner?, [UDDFBuddy]) {
+    func parseDiver(_ tree: XNode, diagnostics: inout [ParseDiagnostic]) -> (UDDFOwner?, [UDDFBuddy]) {
         guard let diver = tree.child("diver") else { return (nil, []) }
 
         // Owner
         let owner: UDDFOwner?
         if let ownerNode = diver.child("owner") {
-            let personal = parsePersonalInfo(ownerNode.child("personal"))
+            let personal = parsePersonalInfo(ownerNode.child("personal"), path: "diver/owner/personal", diagnostics: &diagnostics)
             let address = parseAddress(ownerNode.child("address"))
             let contact = parseContact(ownerNode.child("contact"))
-            let equipment = parseEquipmentList(ownerNode.child("equipment"))
+            let equipment = parseEquipmentList(ownerNode.child("equipment"), diagnostics: &diagnostics)
             owner = UDDFOwner(
                 personal: personal, address: address,
                 contact: contact, equipment: equipment
@@ -94,7 +113,7 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         var buddies: [UDDFBuddy] = []
         for buddyNode in diver.children("buddy") {
             guard let id = buddyNode.attribute("id") else { continue }
-            let personal = parsePersonalInfo(buddyNode.child("personal"))
+            let personal = parsePersonalInfo(buddyNode.child("personal"), path: "diver/buddy[\(id)]/personal", diagnostics: &diagnostics)
             let address = parseAddress(buddyNode.child("address"))
             let contact = parseContact(buddyNode.child("contact"))
             buddies.append(UDDFBuddy(
@@ -106,13 +125,13 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         return (owner, buddies)
     }
 
-    func parsePersonalInfo(_ node: XNode?) -> UDDFPersonalInfo? {
+    func parsePersonalInfo(_ node: XNode?, path: String, diagnostics: inout [ParseDiagnostic]) -> UDDFPersonalInfo? {
         guard let node else { return nil }
         let firstName = node.stringValue("firstname")
         let middleName = node.stringValue("middlename")
         let lastName = node.stringValue("lastname")
         let honorific = node.stringValue("honorific")
-        let sex = node.stringValue("sex").flatMap { UDDFSex(rawValue: $0) }
+        let sex: UDDFSex? = parseEnum(node.stringValue("sex"), as: UDDFSex.self, path: "\(path)/sex", diagnostics: &diagnostics)
         let birthdate = node.child("birthdate")?.stringValue("datetime")
         let height = node.doubleValue("height")
         let weight = node.doubleValue("weight")
@@ -175,7 +194,7 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Equipment
 
-    func parseEquipmentList(_ node: XNode?) -> UDDFEquipmentList? {
+    func parseEquipmentList(_ node: XNode?, diagnostics: inout [ParseDiagnostic]) -> UDDFEquipmentList? {
         guard let node else { return nil }
         var items: [UDDFEquipmentItem] = []
 
@@ -205,8 +224,8 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
                     softwareVersion: child.stringValue("softwareversion"),
                     notes: child.stringValue("notes"),
                     tankVolume: child.doubleValue("tankvolume"),
-                    tankMaterial: child.stringValue("tankmaterial").flatMap { UDDFTankMaterial(rawValue: $0) },
-                    suitType: child.stringValue("suittype").flatMap { UDDFSuitType(rawValue: $0) }
+                    tankMaterial: parseEnum(child.stringValue("tankmaterial"), as: UDDFTankMaterial.self, path: "equipment/\(elementName)[\(id)]/tankmaterial", diagnostics: &diagnostics),
+                    suitType: parseEnum(child.stringValue("suittype"), as: UDDFSuitType.self, path: "equipment/\(elementName)[\(id)]/suittype", diagnostics: &diagnostics)
                 )
                 items.append(item)
             }
@@ -246,7 +265,7 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Sites + DiveBases
 
-    func parseSites(_ tree: XNode) -> ([String: UDDFSite], [UDDFDiveBase]) {
+    func parseSites(_ tree: XNode, diagnostics: inout [ParseDiagnostic]) -> ([String: UDDFSite], [UDDFDiveBase]) {
         var sites: [String: UDDFSite] = [:]
         var diveBases: [UDDFDiveBase] = []
 
@@ -270,15 +289,13 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             guard let id = node.attribute("id") else { continue }
             let geo = node.child("geography")
             let sitedata = node.child("sitedata")
-
-            // Notes
             let notes = parseNotes(node)
 
             let site = UDDFSite(
                 id: id,
                 name: node.stringValue("name"),
                 aliasname: node.stringValue("aliasname"),
-                environment: node.stringValue("environment").flatMap { UDDFEnvironment(rawValue: $0) },
+                environment: parseEnum(node.stringValue("environment"), as: UDDFEnvironment.self, path: "divesite/site[\(id)]/environment", diagnostics: &diagnostics),
                 location: geo?.stringValue("location"),
                 latitude: geo?.doubleValue("latitude"),
                 longitude: geo?.doubleValue("longitude"),
@@ -305,10 +322,8 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
     func parseDecoModels(_ tree: XNode) -> [UDDFDecoModel] {
         var models: [UDDFDecoModel] = []
 
-        // Look for <decomodel> children — often <buehlmann id="...">
         let decoNodes = tree.children("decomodel")
         for decoNode in decoNodes {
-            // Buhlmann variant
             for buehlmann in decoNode.children("buehlmann") {
                 guard let id = buehlmann.attribute("id") else { continue }
                 models.append(UDDFDecoModel(
@@ -325,14 +340,14 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Dives
 
-    func parseDives(_ tree: XNode) -> [UDDFDive] {
+    func parseDives(_ tree: XNode, diagnostics: inout [ParseDiagnostic]) -> [UDDFDive] {
         var dives: [UDDFDive] = []
 
         let repGroups = tree.query("profiledata", "repetitiongroup")
         for group in repGroups {
             let groupId = group.attribute("id")
             for diveNode in group.children("dive") {
-                let dive = parseSingleDive(diveNode, repetitionGroupId: groupId)
+                let dive = parseSingleDive(diveNode, repetitionGroupId: groupId, diagnostics: &diagnostics)
                 dives.append(dive)
             }
         }
@@ -340,13 +355,15 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         return dives
     }
 
-    func parseSingleDive(_ node: XNode, repetitionGroupId: String? = nil) -> UDDFDive {
+    func parseSingleDive(_ node: XNode, repetitionGroupId: String? = nil, diagnostics: inout [ParseDiagnostic]) -> UDDFDive {
         let before = node.child("informationbeforedive")
         let after = node.child("informationafterdive")
+        let diveId = node.attribute("id") ?? "?"
+        let divePath = "dive[\(diveId)]"
 
         let siteRef = findSiteRef(before)
         let tanks = parseTankData(node)
-        let waypoints = parseWaypoints(node.child("samples"))
+        let waypoints = parseWaypoints(node.child("samples"), divePath: divePath, diagnostics: &diagnostics)
 
         // Before-dive fields
         let surfaceIntervalNode = before?.child("surfaceintervalbeforedive")
@@ -392,10 +409,10 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             airTemperature: before?.doubleValue("airtemperature"),
             surfaceInterval: surfaceInterval,
             surfaceIntervalIsInfinity: isInfinity,
-            apparatus: before?.stringValue("apparatus").flatMap { UDDFApparatus(rawValue: $0) },
-            platform: before?.stringValue("platform").flatMap { UDDFPlatform(rawValue: $0) },
-            purpose: before?.stringValue("purpose").flatMap { UDDFPurpose(rawValue: $0) },
-            stateOfRest: before?.stringValue("stateofrestbeforedive").flatMap { UDDFStateOfRest(rawValue: $0) },
+            apparatus: parseEnum(before?.stringValue("apparatus"), as: UDDFApparatus.self, path: "\(divePath)/informationbeforedive/apparatus", diagnostics: &diagnostics),
+            platform: parseEnum(before?.stringValue("platform"), as: UDDFPlatform.self, path: "\(divePath)/informationbeforedive/platform", diagnostics: &diagnostics),
+            purpose: parseEnum(before?.stringValue("purpose"), as: UDDFPurpose.self, path: "\(divePath)/informationbeforedive/purpose", diagnostics: &diagnostics),
+            stateOfRest: parseEnum(before?.stringValue("stateofrestbeforedive"), as: UDDFStateOfRest.self, path: "\(divePath)/informationbeforedive/stateofrestbeforedive", diagnostics: &diagnostics),
             noSuit: before?.child("nosuit") != nil ? true : nil,
             price: before?.doubleValue("price"),
             siteRef: siteRef,
@@ -411,10 +428,10 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             desaturationTime: after?.doubleValue("desaturationtime"),
             noFlightTime: after?.doubleValue("noflighttime"),
             pressureDrop: after?.doubleValue("pressuredrop"),
-            current: after?.stringValue("current").flatMap { UDDFCurrent(rawValue: $0) },
-            thermalComfort: after?.stringValue("thermalcomfort").flatMap { UDDFThermalComfort(rawValue: $0) },
-            workload: after?.stringValue("workload").flatMap { UDDFWorkload(rawValue: $0) },
-            program: after?.stringValue("program").flatMap { UDDFProgram(rawValue: $0) },
+            current: parseEnum(after?.stringValue("current"), as: UDDFCurrent.self, path: "\(divePath)/informationafterdive/current", diagnostics: &diagnostics),
+            thermalComfort: parseEnum(after?.stringValue("thermalcomfort"), as: UDDFThermalComfort.self, path: "\(divePath)/informationafterdive/thermalcomfort", diagnostics: &diagnostics),
+            workload: parseEnum(after?.stringValue("workload"), as: UDDFWorkload.self, path: "\(divePath)/informationafterdive/workload", diagnostics: &diagnostics),
+            program: parseEnum(after?.stringValue("program"), as: UDDFProgram.self, path: "\(divePath)/informationafterdive/program", diagnostics: &diagnostics),
             rating: rating,
             equipmentUsedRefs: equipmentUsedRefs,
             leadQuantity: leadQuantity,
@@ -466,29 +483,31 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Waypoints
 
-    func parseWaypoints(_ samples: XNode?) -> [UDDFWaypoint] {
+    func parseWaypoints(_ samples: XNode?, divePath: String = "dive", diagnostics: inout [ParseDiagnostic]) -> [UDDFWaypoint] {
         guard let samples else { return [] }
         var waypoints: [UDDFWaypoint] = []
 
         for wp in samples.children("waypoint") {
             let tankPressures = parseTankPressures(wp)
-            let alarms = parseAlarms(wp)
-            let decoStops = parseDecoStops(wp)
+            let alarms = parseAlarms(wp, divePath: divePath, diagnostics: &diagnostics)
+            let decoStops = parseDecoStops(wp, divePath: divePath, diagnostics: &diagnostics)
             let measuredPO2s = parseSensorReadings(wp, elementName: "measuredpo2")
             let batteryVoltages = parseSensorReadings(wp, elementName: "batteryvoltage")
             let scrubberReadings = parseSensorReadings(wp, elementName: "scrubber")
+            let time = wp.doubleValue("divetime") ?? 0
+            let wpPath = "\(divePath)/samples/waypoint[\(Int(time))s]"
 
             let waypoint = UDDFWaypoint(
-                time: wp.doubleValue("divetime") ?? 0,
+                time: time,
                 depth: wp.doubleValue("depth") ?? 0,
                 temperature: wp.doubleValue("temperature"),
                 tankPressures: tankPressures,
                 switchMixRef: wp.child("switchmix")?.attribute("ref"),
-                diveMode: wp.child("divemode")?.attribute("type").flatMap { UDDFDiveMode(rawValue: $0) },
+                diveMode: parseEnum(wp.child("divemode")?.attribute("type"), as: UDDFDiveMode.self, path: "\(wpPath)/divemode", diagnostics: &diagnostics),
                 calculatedPO2: wp.doubleValue("calculatedpo2"),
                 measuredPO2s: measuredPO2s,
                 setPO2: wp.child("setpo2")?.textValue.flatMap { Double($0) },
-                setPO2SetBy: wp.child("setpo2")?.attribute("setby").flatMap { UDDFSetBySource(rawValue: $0) },
+                setPO2SetBy: parseEnum(wp.child("setpo2")?.attribute("setby"), as: UDDFSetBySource.self, path: "\(wpPath)/setpo2/@setby", diagnostics: &diagnostics),
                 cns: wp.doubleValue("cns"),
                 ndl: wp.doubleValue("nodecotime"),
                 decoStops: decoStops,
@@ -539,12 +558,12 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
     }
 
     /// Parse all <alarm> elements from a waypoint.
-    func parseAlarms(_ wp: XNode) -> [UDDFAlarm] {
+    func parseAlarms(_ wp: XNode, divePath: String = "dive", diagnostics: inout [ParseDiagnostic]) -> [UDDFAlarm] {
         let alarmNodes = wp.children("alarm")
         var alarms: [UDDFAlarm] = []
         for node in alarmNodes {
             let text = node.textValue
-            let type = text.flatMap { UDDFAlarmType(rawValue: $0) }
+            let type: UDDFAlarmType? = parseEnum(text, as: UDDFAlarmType.self, path: "\(divePath)/samples/waypoint/alarm", diagnostics: &diagnostics)
             let level = node.attribute("level").flatMap { Double($0) }
             let tankRef = node.attribute("tankref")
             alarms.append(UDDFAlarm(type: type, message: text, level: level, tankRef: tankRef))
@@ -553,11 +572,11 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
     }
 
     /// Parse all <decostop> elements from a waypoint.
-    func parseDecoStops(_ wp: XNode) -> [UDDFDecoStop] {
+    func parseDecoStops(_ wp: XNode, divePath: String = "dive", diagnostics: inout [ParseDiagnostic]) -> [UDDFDecoStop] {
         let stopNodes = wp.children("decostop")
         var stops: [UDDFDecoStop] = []
         for node in stopNodes {
-            let kind = node.attribute("kind").flatMap { UDDFDecoStopKind(rawValue: $0) }
+            let kind: UDDFDecoStopKind? = parseEnum(node.attribute("kind"), as: UDDFDecoStopKind.self, path: "\(divePath)/samples/waypoint/decostop/@kind", diagnostics: &diagnostics)
             let depth = node.attribute("decodepth").flatMap { Double($0) }
                 ?? node.doubleValue("decodepth")
             let duration = node.attribute("duration").flatMap { Double($0) }
