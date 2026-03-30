@@ -20,15 +20,25 @@ public struct UDDFTankPressure: Codable, Sendable {
 
 /// An alarm event from `<alarm>` element in a waypoint.
 /// UDDF spec allows multiple alarms per waypoint.
+/// Attributes: `level` (real, optional), `tankref` (string, optional).
 public struct UDDFAlarm: Codable, Sendable {
     /// Alarm type parsed from element text.
     public let type: UDDFAlarmType?
     /// Raw alarm string for unknown/extension types.
     public let message: String?
+    /// Alarm severity level.
+    public let level: Double?
+    /// Reference to tank that triggered the alarm.
+    public let tankRef: String?
 
-    public init(type: UDDFAlarmType? = nil, message: String? = nil) {
+    public init(
+        type: UDDFAlarmType? = nil, message: String? = nil,
+        level: Double? = nil, tankRef: String? = nil
+    ) {
         self.type = type
         self.message = message
+        self.level = level
+        self.tankRef = tankRef
     }
 }
 

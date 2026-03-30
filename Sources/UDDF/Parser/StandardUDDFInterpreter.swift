@@ -14,6 +14,7 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         let (owner, buddies) = parseDiver(tree)
         let mixes = parseMixes(tree)
         let (sites, diveBases) = parseSites(tree)
+        let decoModels = parseDecoModels(tree)
         let dives = parseDives(tree)
 
         diagnostics.insert(
@@ -33,6 +34,7 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             mixes: mixes,
             sites: sites,
             diveBases: diveBases,
+            decoModels: decoModels,
             dives: dives
         )
 
@@ -51,7 +53,8 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             diveComputer = UDDFDiveComputer(
                 name: dc.stringValue("name"),
                 model: dc.stringValue("model"),
-                serialNumber: dc.stringValue("serialnumber")
+                serialNumber: dc.stringValue("serialnumber"),
+                softwareVersion: dc.stringValue("softwareversion")
             )
         } else {
             diveComputer = nil
@@ -76,20 +79,13 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         let owner: UDDFOwner?
         if let ownerNode = diver.child("owner") {
             let personal = parsePersonalInfo(ownerNode.child("personal"))
-            let dc = ownerNode.query("equipment", "divecomputer").first
-            let equipment: UDDFEquipmentList?
-            if let dc {
-                equipment = UDDFEquipmentList(
-                    diveComputer: UDDFDiveComputer(
-                        name: dc.stringValue("name"),
-                        model: dc.stringValue("model"),
-                        serialNumber: dc.stringValue("serialnumber")
-                    )
-                )
-            } else {
-                equipment = nil
-            }
-            owner = UDDFOwner(personal: personal, equipment: equipment)
+            let address = parseAddress(ownerNode.child("address"))
+            let contact = parseContact(ownerNode.child("contact"))
+            let equipment = parseEquipmentList(ownerNode.child("equipment"))
+            owner = UDDFOwner(
+                personal: personal, address: address,
+                contact: contact, equipment: equipment
+            )
         } else {
             owner = nil
         }
@@ -99,7 +95,12 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         for buddyNode in diver.children("buddy") {
             guard let id = buddyNode.attribute("id") else { continue }
             let personal = parsePersonalInfo(buddyNode.child("personal"))
-            buddies.append(UDDFBuddy(id: id, personal: personal))
+            let address = parseAddress(buddyNode.child("address"))
+            let contact = parseContact(buddyNode.child("contact"))
+            buddies.append(UDDFBuddy(
+                id: id, personal: personal,
+                address: address, contact: contact
+            ))
         }
 
         return (owner, buddies)
@@ -110,13 +111,109 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         let firstName = node.stringValue("firstname")
         let middleName = node.stringValue("middlename")
         let lastName = node.stringValue("lastname")
+        let honorific = node.stringValue("honorific")
         let sex = node.stringValue("sex").flatMap { UDDFSex(rawValue: $0) }
         let birthdate = node.child("birthdate")?.stringValue("datetime")
+        let height = node.doubleValue("height")
+        let weight = node.doubleValue("weight")
 
-        guard firstName != nil || lastName != nil || middleName != nil || sex != nil || birthdate != nil else {
+        // Memberships
+        var memberships: [UDDFMembership] = []
+        for m in node.children("membership") {
+            memberships.append(UDDFMembership(
+                organization: m.attribute("org"),
+                memberId: m.attribute("memberid")
+            ))
+        }
+
+        guard firstName != nil || lastName != nil || middleName != nil
+            || honorific != nil || sex != nil || birthdate != nil
+            || height != nil || weight != nil || !memberships.isEmpty else {
             return nil
         }
-        return UDDFPersonalInfo(firstName: firstName, middleName: middleName, lastName: lastName, sex: sex, birthdate: birthdate)
+        return UDDFPersonalInfo(
+            firstName: firstName, middleName: middleName,
+            lastName: lastName, honorific: honorific,
+            sex: sex, birthdate: birthdate,
+            height: height, weight: weight,
+            memberships: memberships
+        )
+    }
+
+    // MARK: - Address & Contact
+
+    func parseAddress(_ node: XNode?) -> UDDFAddress? {
+        guard let node else { return nil }
+        let street = node.stringValue("street")
+        let city = node.stringValue("city")
+        let postcode = node.stringValue("postcode")
+        let country = node.stringValue("country")
+        let province = node.stringValue("province")
+        guard street != nil || city != nil || postcode != nil
+            || country != nil || province != nil else { return nil }
+        return UDDFAddress(
+            street: street, city: city, postcode: postcode,
+            country: country, province: province
+        )
+    }
+
+    func parseContact(_ node: XNode?) -> UDDFContact? {
+        guard let node else { return nil }
+        let phone = node.stringValue("phone")
+        let mobilephone = node.stringValue("mobilephone")
+        let fax = node.stringValue("fax")
+        let email = node.stringValue("email")
+        let homepage = node.stringValue("homepage")
+        let language = node.stringValue("language")
+        guard phone != nil || mobilephone != nil || fax != nil
+            || email != nil || homepage != nil || language != nil else { return nil }
+        return UDDFContact(
+            phone: phone, mobilephone: mobilephone, fax: fax,
+            email: email, homepage: homepage, language: language
+        )
+    }
+
+    // MARK: - Equipment
+
+    func parseEquipmentList(_ node: XNode?) -> UDDFEquipmentList? {
+        guard let node else { return nil }
+        var items: [UDDFEquipmentItem] = []
+
+        // All known equipment element names
+        let typeMap: [String: UDDFEquipmentType] = [
+            "boots": .boots, "buoyancycontroldevice": .buoyancycontroldevice,
+            "camera": .camera, "compass": .compass, "compressor": .compressor,
+            "divecomputer": .divecomputer, "equipmentconfiguration": .equipmentconfiguration,
+            "fins": .fins, "gloves": .gloves, "knife": .knife,
+            "lead": .lead, "light": .light, "mask": .mask,
+            "rebreather": .rebreather, "regulator": .regulator,
+            "scooter": .scooter, "suit": .suit, "tank": .tank,
+            "variouspieces": .variouspieces, "videocamera": .videocamera,
+            "watch": .watch,
+        ]
+
+        for (elementName, equipType) in typeMap {
+            for child in node.children(elementName) {
+                guard let id = child.attribute("id") else { continue }
+                let item = UDDFEquipmentItem(
+                    type: equipType,
+                    id: id,
+                    name: child.stringValue("name"),
+                    manufacturer: child.child("manufacturer")?.stringValue("name"),
+                    model: child.stringValue("model"),
+                    serialNumber: child.stringValue("serialnumber"),
+                    softwareVersion: child.stringValue("softwareversion"),
+                    notes: child.stringValue("notes"),
+                    tankVolume: child.doubleValue("tankvolume"),
+                    tankMaterial: child.stringValue("tankmaterial").flatMap { UDDFTankMaterial(rawValue: $0) },
+                    suitType: child.stringValue("suittype").flatMap { UDDFSuitType(rawValue: $0) }
+                )
+                items.append(item)
+            }
+        }
+
+        guard !items.isEmpty else { return nil }
+        return UDDFEquipmentList(items: items)
     }
 
     // MARK: - Mixes
@@ -137,7 +234,9 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
                 n2: node.doubleValue("n2"),
                 he: he,
                 ar: node.doubleValue("ar"),
-                h2: node.doubleValue("h2")
+                h2: node.doubleValue("h2"),
+                maximumPO2: node.doubleValue("maximumpo2"),
+                maximumOperationDepth: node.doubleValue("maximumoperationdepth")
             )
             mixes[id] = mix
         }
@@ -155,7 +254,14 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         let baseNodes = tree.query("divesite", "divebase")
         for node in baseNodes {
             guard let id = node.attribute("id") else { continue }
-            diveBases.append(UDDFDiveBase(id: id, name: node.stringValue("name")))
+            diveBases.append(UDDFDiveBase(
+                id: id, name: node.stringValue("name"),
+                address: parseAddress(node.child("address")),
+                contact: parseContact(node.child("contact")),
+                aliasname: node.stringValue("aliasname"),
+                rating: node.child("rating")?.doubleValue("ratingvalue"),
+                notes: parseNotes(node)
+            ))
         }
 
         // Sites
@@ -166,18 +272,12 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             let sitedata = node.child("sitedata")
 
             // Notes
-            let notes: String?
-            if let notesNode = node.child("notes") {
-                let paras = notesNode.children("para").compactMap { $0.textValue }
-                let joined = paras.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-                notes = joined.isEmpty ? nil : joined
-            } else {
-                notes = nil
-            }
+            let notes = parseNotes(node)
 
             let site = UDDFSite(
                 id: id,
                 name: node.stringValue("name"),
+                aliasname: node.stringValue("aliasname"),
                 environment: node.stringValue("environment").flatMap { UDDFEnvironment(rawValue: $0) },
                 location: geo?.stringValue("location"),
                 latitude: geo?.doubleValue("latitude"),
@@ -191,12 +291,36 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
                 minimumDepth: sitedata?.doubleValue("minimumdepth"),
                 density: sitedata?.doubleValue("density"),
                 bottom: sitedata?.stringValue("bottom"),
+                rating: node.child("rating")?.doubleValue("ratingvalue"),
                 notes: notes
             )
             sites[id] = site
         }
 
         return (sites, diveBases)
+    }
+
+    // MARK: - Deco Models
+
+    func parseDecoModels(_ tree: XNode) -> [UDDFDecoModel] {
+        var models: [UDDFDecoModel] = []
+
+        // Look for <decomodel> children — often <buehlmann id="...">
+        let decoNodes = tree.children("decomodel")
+        for decoNode in decoNodes {
+            // Buhlmann variant
+            for buehlmann in decoNode.children("buehlmann") {
+                guard let id = buehlmann.attribute("id") else { continue }
+                models.append(UDDFDecoModel(
+                    id: id,
+                    name: "Buhlmann",
+                    gradientFactorHigh: buehlmann.doubleValue("gfhigh"),
+                    gradientFactorLow: buehlmann.doubleValue("gflow")
+                ))
+            }
+        }
+
+        return models
     }
 
     // MARK: - Dives
@@ -232,8 +356,10 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         // Link refs from informationbeforedive
         let allBeforeRefs = extractLinkRefs(before)
 
-        // Equipment used refs from informationafterdive
-        let equipmentUsedRefs = extractLinkRefs(after?.child("equipmentused"))
+        // Equipment used refs + lead quantity
+        let equipUsed = after?.child("equipmentused")
+        let equipmentUsedRefs = extractLinkRefs(equipUsed)
+        let leadQuantity = equipUsed?.doubleValue("leadquantity")
 
         // After-dive notes
         let notes = parseNotes(after)
@@ -243,6 +369,15 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
         // Surface interval after dive
         let siAfter = after?.child("surfaceintervalafterdive")?.doubleValue("passedtime")
+
+        // Observations
+        let observations = parseNotes(after?.child("observations"))
+
+        // Symptoms
+        let symptoms = parseNotes(after?.child("anysymptoms"))
+
+        // Deco model ref from links
+        let decoModelRef: String? = nil  // resolved by interpreter if needed
 
         return UDDFDive(
             id: node.attribute("id"),
@@ -261,8 +396,11 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             platform: before?.stringValue("platform").flatMap { UDDFPlatform(rawValue: $0) },
             purpose: before?.stringValue("purpose").flatMap { UDDFPurpose(rawValue: $0) },
             stateOfRest: before?.stringValue("stateofrestbeforedive").flatMap { UDDFStateOfRest(rawValue: $0) },
+            noSuit: before?.child("nosuit") != nil ? true : nil,
+            price: before?.doubleValue("price"),
             siteRef: siteRef,
             buddyRefs: allBeforeRefs,
+            decoModelRef: decoModelRef,
             // after
             greatestDepth: after?.doubleValue("greatestdepth"),
             averageDepth: after?.doubleValue("averagedepth"),
@@ -279,7 +417,10 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             program: after?.stringValue("program").flatMap { UDDFProgram(rawValue: $0) },
             rating: rating,
             equipmentUsedRefs: equipmentUsedRefs,
+            leadQuantity: leadQuantity,
             surfaceIntervalAfterDive: siAfter,
+            observations: observations,
+            symptoms: symptoms,
             notes: notes,
             tanks: tanks,
             waypoints: waypoints
@@ -333,6 +474,9 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             let tankPressures = parseTankPressures(wp)
             let alarms = parseAlarms(wp)
             let decoStops = parseDecoStops(wp)
+            let measuredPO2s = parseSensorReadings(wp, elementName: "measuredpo2")
+            let batteryVoltages = parseSensorReadings(wp, elementName: "batteryvoltage")
+            let scrubberReadings = parseSensorReadings(wp, elementName: "scrubber")
 
             let waypoint = UDDFWaypoint(
                 time: wp.doubleValue("divetime") ?? 0,
@@ -342,19 +486,24 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
                 switchMixRef: wp.child("switchmix")?.attribute("ref"),
                 diveMode: wp.child("divemode")?.attribute("type").flatMap { UDDFDiveMode(rawValue: $0) },
                 calculatedPO2: wp.doubleValue("calculatedpo2"),
-                measuredPO2: wp.doubleValue("measuredpo2"),
+                measuredPO2s: measuredPO2s,
                 setPO2: wp.child("setpo2")?.textValue.flatMap { Double($0) },
                 setPO2SetBy: wp.child("setpo2")?.attribute("setby").flatMap { UDDFSetBySource(rawValue: $0) },
                 cns: wp.doubleValue("cns"),
                 ndl: wp.doubleValue("nodecotime"),
                 decoStops: decoStops,
                 gradientFactor: wp.doubleValue("gradientfactor"),
+                setGFHigh: wp.doubleValue("setgfhigh"),
+                setGFLow: wp.doubleValue("setgflow"),
+                timeToSurface: wp.doubleValue("timetosurface"),
                 heading: wp.doubleValue("heading"),
                 heartRate: wp.doubleValue("heartrate") ?? wp.doubleValue("pulserate"),
                 alarms: alarms,
                 otu: wp.doubleValue("otu"),
                 bodyTemperature: wp.doubleValue("bodytemperature"),
                 batteryChargeCondition: wp.doubleValue("batterychargecondition"),
+                batteryVoltages: batteryVoltages,
+                scrubberReadings: scrubberReadings,
                 setMarker: wp.child("setmarker") != nil ? true : nil,
                 remainingBottomTime: wp.doubleValue("remainingbottomtime"),
                 remainingO2Time: wp.doubleValue("remainingo2time")
@@ -377,6 +526,18 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         return pressures
     }
 
+    /// Parse sensor readings — reusable for measuredpo2, batteryvoltage, scrubber.
+    func parseSensorReadings(_ wp: XNode, elementName: String) -> [UDDFSensorReading] {
+        let nodes = wp.children(elementName)
+        var readings: [UDDFSensorReading] = []
+        for node in nodes {
+            if let text = node.textValue, let value = Double(text) {
+                readings.append(UDDFSensorReading(ref: node.attribute("ref"), value: value))
+            }
+        }
+        return readings
+    }
+
     /// Parse all <alarm> elements from a waypoint.
     func parseAlarms(_ wp: XNode) -> [UDDFAlarm] {
         let alarmNodes = wp.children("alarm")
@@ -384,7 +545,9 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         for node in alarmNodes {
             let text = node.textValue
             let type = text.flatMap { UDDFAlarmType(rawValue: $0) }
-            alarms.append(UDDFAlarm(type: type, message: text))
+            let level = node.attribute("level").flatMap { Double($0) }
+            let tankRef = node.attribute("tankref")
+            alarms.append(UDDFAlarm(type: type, message: text, level: level, tankRef: tankRef))
         }
         return alarms
     }
@@ -413,10 +576,19 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
 
     // MARK: - Notes
 
-    func parseNotes(_ after: XNode?) -> String? {
-        guard let notes = after?.child("notes") else { return nil }
-        let paras = notes.children("para").compactMap { $0.textValue }
-        let joined = paras.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        return joined.isEmpty ? nil : joined
+    func parseNotes(_ node: XNode?) -> String? {
+        guard let node else { return nil }
+        // Try <notes><para>...</para></notes> first
+        let notesChild = node.child("notes") ?? node
+        let paras = notesChild.children("para").compactMap { $0.textValue }
+        if !paras.isEmpty {
+            let joined = paras.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            return joined.isEmpty ? nil : joined
+        }
+        // Fall back to direct text content in <notes>
+        if let direct = notesChild.textValue, !direct.isEmpty {
+            return direct
+        }
+        return nil
     }
 }

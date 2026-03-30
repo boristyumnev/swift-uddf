@@ -12,6 +12,7 @@ public struct UDDFDocument: Codable, Sendable {
     public let mixes: [String: UDDFMix]
     public let sites: [String: UDDFSite]
     public let diveBases: [UDDFDiveBase]
+    public let decoModels: [UDDFDecoModel]
     public let dives: [UDDFDive]
     public let overflow: [String: String]?
 
@@ -23,6 +24,7 @@ public struct UDDFDocument: Codable, Sendable {
         mixes: [String: UDDFMix] = [:],
         sites: [String: UDDFSite] = [:],
         diveBases: [UDDFDiveBase] = [],
+        decoModels: [UDDFDecoModel] = [],
         dives: [UDDFDive] = [],
         overflow: [String: String]? = nil
     ) {
@@ -33,6 +35,7 @@ public struct UDDFDocument: Codable, Sendable {
         self.mixes = mixes
         self.sites = sites
         self.diveBases = diveBases
+        self.decoModels = decoModels
         self.dives = dives
         self.overflow = overflow
     }
@@ -66,10 +69,15 @@ public struct UDDFDiveComputer: Codable, Sendable {
     public let name: String?
     public let model: String?
     public let serialNumber: String?
+    public let softwareVersion: String?
 
-    public init(name: String? = nil, model: String? = nil, serialNumber: String? = nil) {
+    public init(
+        name: String? = nil, model: String? = nil,
+        serialNumber: String? = nil, softwareVersion: String? = nil
+    ) {
         self.name = name
         self.model = model
         self.serialNumber = serialNumber
+        self.softwareVersion = softwareVersion
     }
 }

@@ -164,4 +164,52 @@ public enum UDDFSex: String, Codable, Sendable {
     case undetermined
     case male
     case female
+    case hermaphrodite
+}
+
+// MARK: - Equipment Type
+
+/// Equipment category from element name inside `<equipment>`.
+public enum UDDFEquipmentType: String, Codable, Sendable {
+    case boots
+    case buoyancycontroldevice
+    case camera
+    case compass
+    case compressor
+    case divecomputer
+    case equipmentconfiguration
+    case fins
+    case gloves
+    case knife
+    case lead
+    case light
+    case mask
+    case rebreather
+    case regulator
+    case scooter
+    case suit
+    case tank
+    case variouspieces
+    case videocamera
+    case watch
+}
+
+// MARK: - Suit Type
+
+/// Suit type from `<suittype>`.
+public enum UDDFSuitType: String, Codable, Sendable {
+    case diveSkin = "dive-skin"
+    case wetSuit = "wet-suit"
+    case drySuit = "dry-suit"
+    case hotWaterSuit = "hot-water-suit"
+    case other
+}
+
+// MARK: - Tank Material
+
+/// Tank material from `<tankmaterial>`.
+public enum UDDFTankMaterial: String, Codable, Sendable {
+    case aluminium
+    case carbon
+    case steel
 }

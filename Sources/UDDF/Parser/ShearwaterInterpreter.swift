@@ -9,6 +9,8 @@ import Foundation
 /// - Visibility as freeform string (`"50 ft"`) instead of numeric
 /// - Metadata embedded in notes (`-ShearwaterDiveModeType:6-`)
 /// - Site ref resolution from multiple `<link>` elements
+/// - Buddy name stuffed into `<firstname>` (full name, no `<lastname>`)
+/// - `maximumpo2` on mixes
 public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
     /// Shearwater's sentinel value for "no tank pressure data"
@@ -26,6 +28,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
         let (owner, buddies) = standard.parseDiver(tree)
         let mixes = parseMixes(tree, diagnostics: &diagnostics)
         let (sites, diveBases) = standard.parseSites(tree)
+        let decoModels = standard.parseDecoModels(tree)
         let dives = parseDives(tree, knownSiteIds: Set(sites.keys), mixes: mixes, diagnostics: &diagnostics)
 
         diagnostics.insert(
@@ -45,6 +48,7 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
             mixes: mixes,
             sites: sites,
             diveBases: diveBases,
+            decoModels: decoModels,
             dives: dives
         )
 
@@ -70,7 +74,9 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 n2: node.doubleValue("n2"),
                 he: he,
                 ar: node.doubleValue("ar"),
-                h2: node.doubleValue("h2")
+                h2: node.doubleValue("h2"),
+                maximumPO2: node.doubleValue("maximumpo2"),
+                maximumOperationDepth: node.doubleValue("maximumoperationdepth")
             )
             mixes[id] = mix
         }
@@ -134,10 +140,26 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
 
         // Link refs
         let allBeforeRefs = standard.extractLinkRefs(before)
-        let equipmentUsedRefs = standard.extractLinkRefs(after?.child("equipmentused"))
+        let equipUsed = after?.child("equipmentused")
+        let equipmentUsedRefs = standard.extractLinkRefs(equipUsed)
+        let leadQuantity = equipUsed?.doubleValue("leadquantity")
 
         // Rating
         let rating = after?.child("rating")?.doubleValue("ratingvalue")
+
+        // Observations from Shearwater's <observations><notes>
+        let observations = parseShearwaterObservations(after)
+
+        // Symptoms
+        let symptomsNode = after?.child("anysymptoms")
+        let symptoms: String?
+        if let symptomsNode {
+            let paras = symptomsNode.child("notes")?.children("para").compactMap { $0.textValue } ?? []
+            let joined = paras.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            symptoms = joined.isEmpty ? nil : joined
+        } else {
+            symptoms = nil
+        }
 
         return UDDFDive(
             id: node.attribute("id"),
@@ -172,6 +194,9 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
             program: after?.stringValue("program").flatMap { UDDFProgram(rawValue: $0) },
             rating: rating,
             equipmentUsedRefs: equipmentUsedRefs,
+            leadQuantity: leadQuantity,
+            observations: observations,
+            symptoms: symptoms,
             notes: notes,
             tanks: tanks,
             waypoints: waypoints
@@ -244,6 +269,11 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 currentMode = explicitMode
             }
 
+            let measuredPO2s = standard.parseSensorReadings(wp, elementName: "measuredpo2")
+            let batteryVoltages = standard.parseSensorReadings(wp, elementName: "batteryvoltage")
+            let scrubberReadings = standard.parseSensorReadings(wp, elementName: "scrubber")
+            let decoStops = standard.parseDecoStops(wp)
+
             let waypoint = UDDFWaypoint(
                 time: wp.doubleValue("divetime") ?? 0,
                 depth: wp.doubleValue("depth") ?? 0,
@@ -252,17 +282,23 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 switchMixRef: switchMixRef,
                 diveMode: diveMode,
                 calculatedPO2: wp.doubleValue("calculatedpo2"),
-                measuredPO2: wp.doubleValue("measuredpo2"),
+                measuredPO2s: measuredPO2s,
                 setPO2: wp.child("setpo2")?.textValue.flatMap { Double($0) },
                 setPO2SetBy: wp.child("setpo2")?.attribute("setby").flatMap { UDDFSetBySource(rawValue: $0) },
                 cns: wp.doubleValue("cns"),
                 ndl: wp.doubleValue("nodecotime"),
+                decoStops: decoStops,
                 gradientFactor: wp.doubleValue("gradientfactor"),
+                setGFHigh: wp.doubleValue("setgfhigh"),
+                setGFLow: wp.doubleValue("setgflow"),
+                timeToSurface: wp.doubleValue("timetosurface"),
                 heading: wp.doubleValue("heading"),
                 heartRate: wp.doubleValue("heartrate") ?? wp.doubleValue("pulserate"),
                 otu: wp.doubleValue("otu"),
                 bodyTemperature: wp.doubleValue("bodytemperature"),
                 batteryChargeCondition: wp.doubleValue("batterychargecondition"),
+                batteryVoltages: batteryVoltages,
+                scrubberReadings: scrubberReadings,
                 setMarker: wp.child("setmarker") != nil ? true : nil,
                 remainingBottomTime: wp.doubleValue("remainingbottomtime"),
                 remainingO2Time: wp.doubleValue("remainingo2time")
@@ -336,6 +372,17 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
         let paras = notes.children("para").compactMap { $0.textValue }
         let userNotes = paras.filter { !$0.hasPrefix("-Shearwater") }
         let joined = userNotes.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return joined.isEmpty ? nil : joined
+    }
+
+    // MARK: - Observations
+
+    func parseShearwaterObservations(_ after: XNode?) -> String? {
+        guard let obs = after?.child("observations") else { return nil }
+        let paras = obs.child("notes")?.children("para").compactMap { $0.textValue } ?? []
+        // Filter out Shearwater internal metadata
+        let user = paras.filter { !$0.hasPrefix("-Shearwater") }
+        let joined = user.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         return joined.isEmpty ? nil : joined
     }
 }

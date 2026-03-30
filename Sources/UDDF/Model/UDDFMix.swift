@@ -12,11 +12,16 @@ public struct UDDFMix: Codable, Sendable {
     public let he: Double
     public let ar: Double?
     public let h2: Double?
+    /// Maximum PO2 in Pascals (some generators emit `<maximumpo2>`).
+    public let maximumPO2: Double?
+    /// Maximum operation depth in meters (some generators emit `<maximumoperationdepth>`).
+    public let maximumOperationDepth: Double?
 
     public init(
         id: String, name: String? = nil, o2: Double,
         n2: Double? = nil, he: Double = 0,
-        ar: Double? = nil, h2: Double? = nil
+        ar: Double? = nil, h2: Double? = nil,
+        maximumPO2: Double? = nil, maximumOperationDepth: Double? = nil
     ) {
         self.id = id
         self.name = name
@@ -25,5 +30,7 @@ public struct UDDFMix: Codable, Sendable {
         self.he = he
         self.ar = ar
         self.h2 = h2
+        self.maximumPO2 = maximumPO2
+        self.maximumOperationDepth = maximumOperationDepth
     }
 }

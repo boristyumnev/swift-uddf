@@ -22,9 +22,12 @@ public struct UDDFDive: Codable, Sendable {
     public let platform: UDDFPlatform?
     public let purpose: UDDFPurpose?
     public let stateOfRest: UDDFStateOfRest?
+    public let noSuit: Bool?                        // <nosuit/> empty element
+    public let price: Double?                       // dive cost
     public let siteRef: String?
     public let buddyRefs: [String]
     public let equipmentRefs: [String]
+    public let decoModelRef: String?
 
     // MARK: informationafterdive
 
@@ -43,7 +46,10 @@ public struct UDDFDive: Codable, Sendable {
     public let program: UDDFProgram?
     public let rating: Double?
     public let equipmentUsedRefs: [String]
+    public let leadQuantity: Double?                // kg — from <equipmentused><leadquantity>
     public let surfaceIntervalAfterDive: Double?    // seconds
+    public let observations: String?                // marine life from <observations>
+    public let symptoms: String?                    // DCS symptoms from <anysymptoms>
     public let notes: String?
 
     // MARK: tankdata + samples
@@ -62,7 +68,9 @@ public struct UDDFDive: Codable, Sendable {
         surfaceIntervalIsInfinity: Bool? = nil,
         apparatus: UDDFApparatus? = nil, platform: UDDFPlatform? = nil,
         purpose: UDDFPurpose? = nil, stateOfRest: UDDFStateOfRest? = nil,
-        siteRef: String? = nil, buddyRefs: [String] = [], equipmentRefs: [String] = [],
+        noSuit: Bool? = nil, price: Double? = nil,
+        siteRef: String? = nil, buddyRefs: [String] = [],
+        equipmentRefs: [String] = [], decoModelRef: String? = nil,
         // after
         greatestDepth: Double? = nil, averageDepth: Double? = nil,
         duration: Double? = nil, lowestTemperature: Double? = nil,
@@ -71,8 +79,10 @@ public struct UDDFDive: Codable, Sendable {
         pressureDrop: Double? = nil, current: UDDFCurrent? = nil,
         thermalComfort: UDDFThermalComfort? = nil, workload: UDDFWorkload? = nil,
         program: UDDFProgram? = nil, rating: Double? = nil,
-        equipmentUsedRefs: [String] = [],
-        surfaceIntervalAfterDive: Double? = nil, notes: String? = nil,
+        equipmentUsedRefs: [String] = [], leadQuantity: Double? = nil,
+        surfaceIntervalAfterDive: Double? = nil,
+        observations: String? = nil, symptoms: String? = nil,
+        notes: String? = nil,
         // data
         tanks: [UDDFTankData] = [], waypoints: [UDDFWaypoint] = [],
         overflow: [String: String]? = nil
@@ -92,9 +102,12 @@ public struct UDDFDive: Codable, Sendable {
         self.platform = platform
         self.purpose = purpose
         self.stateOfRest = stateOfRest
+        self.noSuit = noSuit
+        self.price = price
         self.siteRef = siteRef
         self.buddyRefs = buddyRefs
         self.equipmentRefs = equipmentRefs
+        self.decoModelRef = decoModelRef
         self.greatestDepth = greatestDepth
         self.averageDepth = averageDepth
         self.duration = duration
@@ -110,7 +123,10 @@ public struct UDDFDive: Codable, Sendable {
         self.program = program
         self.rating = rating
         self.equipmentUsedRefs = equipmentUsedRefs
+        self.leadQuantity = leadQuantity
         self.surfaceIntervalAfterDive = surfaceIntervalAfterDive
+        self.observations = observations
+        self.symptoms = symptoms
         self.notes = notes
         self.tanks = tanks
         self.waypoints = waypoints
