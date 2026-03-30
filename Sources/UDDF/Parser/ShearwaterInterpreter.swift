@@ -161,6 +161,13 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
             symptoms = nil
         }
 
+        // Dive-level overflow
+        let diveKnown: Set<String> = [
+            "informationbeforedive", "informationafterdive",
+            "tankdata", "samples",
+        ]
+        let diveOverflow = standard.collectOverflow(node, knownChildren: diveKnown)
+
         return UDDFDive(
             id: node.attribute("id"),
             repetitionGroupId: repetitionGroupId,
@@ -199,7 +206,8 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
             symptoms: symptoms,
             notes: notes,
             tanks: tanks,
-            waypoints: waypoints
+            waypoints: waypoints,
+            overflow: diveOverflow
         )
     }
 

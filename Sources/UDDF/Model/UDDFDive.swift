@@ -56,7 +56,7 @@ public struct UDDFDive: Codable, Sendable {
 
     public let tanks: [UDDFTankData]
     public let waypoints: [UDDFWaypoint]
-    public let overflow: [String: String]?
+    public let overflow: [UDDFOverflowEntry]?
 
     public init(
         id: String? = nil, repetitionGroupId: String? = nil,
@@ -85,7 +85,7 @@ public struct UDDFDive: Codable, Sendable {
         notes: String? = nil,
         // data
         tanks: [UDDFTankData] = [], waypoints: [UDDFWaypoint] = [],
-        overflow: [String: String]? = nil
+        overflow: [UDDFOverflowEntry]? = nil
     ) {
         self.id = id
         self.repetitionGroupId = repetitionGroupId

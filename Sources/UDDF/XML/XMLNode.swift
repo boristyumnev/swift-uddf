@@ -77,4 +77,36 @@ extension XNode {
     public func attribute(_ name: String) -> String? {
         attributes[name]
     }
+
+    /// Serialize this node and its subtree back to well-formed XML.
+    /// Applies proper escaping to text content and attribute values.
+    public func toXML(depth: Int = 0) -> String {
+        let indent = String(repeating: "  ", count: depth)
+        var result = "\(indent)<\(name)"
+
+        // Attributes — sorted for deterministic output
+        for (key, value) in attributes.sorted(by: { $0.key < $1.key }) {
+            result += " \(key)=\"\(escapeAttribute(value))\""
+        }
+
+        let hasText = textValue != nil
+        let hasChildren = !children.isEmpty
+
+        if !hasText && !hasChildren {
+            result += "/>\n"
+        } else if hasText && !hasChildren {
+            result += ">\(escapeText(text ?? ""))</\(name)>\n"
+        } else {
+            result += ">\n"
+            if let text = textValue {
+                result += "\(indent)  \(escapeText(text))\n"
+            }
+            for child in children {
+                result += child.toXML(depth: depth + 1)
+            }
+            result += "\(indent)</\(name)>\n"
+        }
+
+        return result
+    }
 }
