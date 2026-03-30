@@ -14,7 +14,7 @@ public struct UDDFDocument: Codable, Sendable {
     public let diveBases: [UDDFDiveBase]
     public let decoModels: [UDDFDecoModel]
     public let dives: [UDDFDive]
-    public let overflow: [String: String]?
+    public let overflow: [UDDFOverflowEntry]?
 
     public init(
         version: String,
@@ -26,7 +26,7 @@ public struct UDDFDocument: Codable, Sendable {
         diveBases: [UDDFDiveBase] = [],
         decoModels: [UDDFDecoModel] = [],
         dives: [UDDFDive] = [],
-        overflow: [String: String]? = nil
+        overflow: [UDDFOverflowEntry]? = nil
     ) {
         self.version = version
         self.generator = generator

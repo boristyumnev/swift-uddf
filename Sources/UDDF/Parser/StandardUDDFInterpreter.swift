@@ -26,6 +26,13 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             at: 0
         )
 
+        // Root-level overflow
+        let rootKnown: Set<String> = [
+            "generator", "gasdefinitions", "diver", "divesite",
+            "decomodel", "profiledata",
+        ]
+        let rootOverflow = collectOverflow(tree, knownChildren: rootKnown)
+
         let document = UDDFDocument(
             version: version,
             generator: generator,
@@ -35,7 +42,8 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             sites: sites,
             diveBases: diveBases,
             decoModels: decoModels,
-            dives: dives
+            dives: dives,
+            overflow: rootOverflow
         )
 
         return ParseResult(document: document, diagnostics: diagnostics)
@@ -291,6 +299,13 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             let sitedata = node.child("sitedata")
             let notes = parseNotes(node)
 
+            // Site-level overflow
+            let siteKnown: Set<String> = [
+                "name", "aliasname", "environment", "geography",
+                "sitedata", "rating", "notes", "link",
+            ]
+            let siteOverflow = collectOverflow(node, knownChildren: siteKnown)
+
             let site = UDDFSite(
                 id: id,
                 name: node.stringValue("name"),
@@ -309,7 +324,8 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
                 density: sitedata?.doubleValue("density"),
                 bottom: sitedata?.stringValue("bottom"),
                 rating: node.child("rating")?.doubleValue("ratingvalue"),
-                notes: notes
+                notes: notes,
+                overflow: siteOverflow
             )
             sites[id] = site
         }
@@ -396,6 +412,13 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
         // Deco model ref from links
         let decoModelRef: String? = nil  // resolved by interpreter if needed
 
+        // Dive-level overflow
+        let diveKnown: Set<String> = [
+            "informationbeforedive", "informationafterdive",
+            "tankdata", "samples",
+        ]
+        let diveOverflow = collectOverflow(node, knownChildren: diveKnown)
+
         return UDDFDive(
             id: node.attribute("id"),
             repetitionGroupId: repetitionGroupId,
@@ -440,7 +463,8 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             symptoms: symptoms,
             notes: notes,
             tanks: tanks,
-            waypoints: waypoints
+            waypoints: waypoints,
+            overflow: diveOverflow
         )
     }
 
@@ -609,5 +633,19 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             return direct
         }
         return nil
+    }
+
+    // MARK: - Overflow Collection
+
+    /// Collect unrecognized child elements as overflow entries.
+    /// Returns nil if no overflow found (keeps model clean).
+    func collectOverflow(_ node: XNode, knownChildren: Set<String>) -> [UDDFOverflowEntry]? {
+        var entries: [UDDFOverflowEntry] = []
+        for child in node.children {
+            if !knownChildren.contains(child.name) {
+                entries.append(UDDFOverflowEntry(name: child.name, xml: child.toXML()))
+            }
+        }
+        return entries.isEmpty ? nil : entries
     }
 }

@@ -23,7 +23,7 @@ public struct UDDFSite: Codable, Sendable {
     // rating + notes
     public let rating: Double?
     public let notes: String?
-    public let overflow: [String: String]?
+    public let overflow: [UDDFOverflowEntry]?
 
     public init(
         id: String, name: String? = nil, aliasname: String? = nil,
@@ -33,7 +33,7 @@ public struct UDDFSite: Codable, Sendable {
         maximumDepth: Double? = nil, minimumDepth: Double? = nil,
         density: Double? = nil, bottom: String? = nil,
         rating: Double? = nil, notes: String? = nil,
-        overflow: [String: String]? = nil
+        overflow: [UDDFOverflowEntry]? = nil
     ) {
         self.id = id
         self.name = name
