@@ -1,9 +1,12 @@
 # swift-uddf
 
-A Swift library for parsing [UDDF](https://uddf.org) (Universal Dive Data Format) files — the standard XML format used by dive computers and dive log software.
+A Swift library for parsing and exporting [UDDF](https://uddf.org) (Universal Dive Data Format) files — the standard XML format used by dive computers and dive log software.
 
+[![CI](https://github.com/boristyumnev/swift-uddf/actions/workflows/ci.yml/badge.svg)](https://github.com/boristyumnev/swift-uddf/actions/workflows/ci.yml)
 [![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
-[![Platforms](https://img.shields.io/badge/Platforms-macOS%2014%20|%20iOS%2017-blue.svg)](https://swift.org)
+[![macOS 14+](https://img.shields.io/badge/macOS-14+-blue.svg)](https://developer.apple.com/macos/)
+[![iOS 17+](https://img.shields.io/badge/iOS-17+-blue.svg)](https://developer.apple.com/ios/)
+[![Tests: 224](https://img.shields.io/badge/Tests-224%20passing-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Status: Experimental** This library is functional and tested against real dive files, but the API may change as we learn from broader usage and additional dive computer formats. Pin your dependency to a specific version if you need stability.
@@ -15,11 +18,14 @@ A Swift library for parsing [UDDF](https://uddf.org) (Universal Dive Data Format
 - Full waypoint telemetry: depth, temperature, multiple tank pressures, PO2 (calculated, measured, setpoint), CNS, NDL, deco stops, gradient factors, heading, heart rate, alarms, OTU, battery, scrubber
 - CCR/rebreather support: multiple O2 sensors, battery voltages, scrubber readings, GF high/low per waypoint
 - Gas mix definitions with all fractions (O2, N2, He, Ar, H2) plus maximum PO2/MOD
+- **XML export** with full round-trip fidelity: parse → export → re-parse = identical data
+- Overflow preservation: unrecognized XML elements survive the round-trip
 - Equipment inventory: 20 equipment types with manufacturer, model, serial, suit type, tank material
-- Diagnostics system reports parsing issues without failing
+- Diagnostics system reports parsing issues (including unrecognized enum values with element paths)
 - Zero dependencies — Foundation only
 - Swift 6 strict concurrency (`Sendable` throughout)
-- 157 tests against real dive files from Shearwater, Subsurface, APD Inspiration, Diving Log 6.0
+- CI: macOS + iOS Simulator tests, iOS 17/18 compatibility builds
+- 224 tests against real dive files from Shearwater, Subsurface, APD Inspiration, Diving Log 6.0
 
 ## Installation
 
@@ -28,7 +34,7 @@ A Swift library for parsing [UDDF](https://uddf.org) (Universal Dive Data Format
 Add to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/boristyumnev/swift-uddf.git", from: "0.1.0")
+.package(url: "https://github.com/boristyumnev/swift-uddf.git", from: "0.12.0")
 ```
 
 Then add `"UDDF"` to your target's dependencies:
@@ -48,20 +54,22 @@ File > Add Package Dependencies > paste the repository URL.
 ```swift
 import UDDF
 
+// Parse
 let data = try Data(contentsOf: uddfFileURL)
 let result = try UDDFParser.parse(data: data)
 let doc = result.document
 
-// Basic dive info
 for dive in doc.dives {
-    print("#\(dive.number ?? 0) — \(dive.datetime ?? "?")")
-    print("  Depth: \(dive.greatestDepth ?? 0) m, Duration: \((dive.duration ?? 0) / 60) min")
+    print("#\(dive.number ?? 0) — \(dive.greatestDepth ?? 0) m, \((dive.duration ?? 0) / 60) min")
 }
 
-// Check for parsing issues
-for diag in result.diagnostics where diag.level == .warning {
-    print("[\(diag.level)] \(diag.message)")
-}
+// Export
+let exported = try UDDFExporter.export(document: doc)
+try exported.write(to: outputURL)
+
+// Export with custom generator
+let myGenerator = UDDFGenerator(name: "MyApp", version: "1.0")
+let exported2 = try UDDFExporter.export(document: doc, generator: myGenerator)
 ```
 
 ## Usage Patterns
@@ -216,10 +224,14 @@ let minutes = dive.duration! / 60
 
 ## Architecture
 
-Two-layer pipeline:
-
+**Import** — two-layer pipeline:
 1. **Layer 1 — XML Parsing**: SAX parser builds a generic `XNode` tree. No UDDF knowledge.
-2. **Layer 2 — Interpretation**: Generator-aware interpreters extract typed `UDDFDocument` from the tree.
+2. **Layer 2 — Interpretation**: Generator-aware interpreters extract typed `UDDFDocument` from the tree. Unrecognized elements are captured as overflow.
+
+**Export** — reverse pipeline:
+1. `UDDFDocumentWriter` walks the model tree, emitting elements in UDDF 3.2.3 spec order
+2. `XMLBuilder` renders well-formed XML with proper escaping (Go `encoding/xml` approach)
+3. Overflow entries are spliced back at their original positions
 
 ### Generator Support
 
