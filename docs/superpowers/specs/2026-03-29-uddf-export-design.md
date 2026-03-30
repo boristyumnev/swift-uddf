@@ -11,6 +11,7 @@ Add UDDF 3.2.3 XML export capability to the swift-uddf library, plus overflow co
 - Overflow splicing during export (re-insert captured elements)
 - Internal XML builder with correct XML 1.0 escaping
 - Performance measurement tests for import and export
+- Comparative performance benchmarks against Foundation XMLDocument
 - Zero new dependencies (Foundation only)
 
 ## Public API
@@ -53,10 +54,10 @@ Sources/UDDF/
 
 ### XML Builder (Internal)
 
-A string buffer with helpers for building well-formed XML:
+A reference-type (`class`) string buffer with helpers for building well-formed XML. Must be a class because the closure-based nesting API (`body: () -> Void`) requires reference semantics for the shared buffer.
 
 ```swift
-struct XMLBuilder {
+final class XMLBuilder {
     /// Element with children.
     func element(_ name: String, attributes: [(String, String)] = [], body: () -> Void)
 
@@ -109,7 +110,7 @@ U+0009 | U+000A | U+000D | U+0020–U+D7FF | U+E000–U+FFFD | U+10000–U+10FFF
 
 Everything else (null, C0 controls 0x01–0x08/0x0B/0x0C/0x0E–0x1F, surrogates, U+FFFE/FFFF) is stripped from output.
 
-### Escaping rationale
+### Escaping Rationale
 
 Surveyed four production XML libraries:
 
@@ -121,6 +122,10 @@ Surveyed four production XML libraries:
 | Swift XMLCoder | 5 (`&<>"'`) | same | no handling | no handling |
 
 We follow Go's approach: most thorough, handles whitespace normalization in attributes (which Python also catches but Java and XMLCoder miss), and sanitizes invalid Unicode.
+
+### Double Formatting
+
+All `Double` values serialized using Swift's default string interpolation (`"\(value)"`), which produces the shortest representation that round-trips through `Double()` losslessly. No fixed decimal places.
 
 ### Document Writer (Internal)
 
@@ -138,9 +143,9 @@ Element ordering per spec:
 2. `<gasdefinitions>` — mix elements
 3. `<diver>` — owner (personal, address, contact, equipment), buddies
 4. `<divesite>` — divebases, then sites
-5. `<decomodel>` — Buhlmann GF
+5. `<decomodel>` — one per model in `document.decoModels`
 6. `<profiledata>` — repetition groups containing dives
-7. Root-level overflow (unrecognized elements from `document.overflow`)
+7. Root-level overflow
 
 Each section is a method: `writeGenerator()`, `writeMixes()`, `writeDiver()`, `writeSites()`, `writeDecoModels()`, `writeDives()`.
 
@@ -151,22 +156,55 @@ Within `<dive>`:
 4. `<informationafterdive>` — all after-dive fields
 5. Dive-level overflow
 
+### Notes Round-Trip
+
+The parser joins multi-paragraph `<notes><para>A</para><para>B</para></notes>` into `"A\nB"`. The exporter splits on `"\n"` and emits one `<para>` per line. This is structurally correct but lossy for original whitespace within paragraphs. Documented as a known limitation — notes *content* round-trips, but exact paragraph boundaries may shift if the original had newlines within a single `<para>`.
+
+### Surface Interval Export
+
+`surfaceIntervalIsInfinity` and `surfaceInterval` are mutually exclusive in UDDF. The writer emits:
+- `<infinity/>` if `surfaceIntervalIsInfinity == true`
+- `<passedtime>` if `surfaceInterval` is non-nil (and infinity is not true)
+- Nothing if both are nil
+
+If both are set (degenerate state), `<infinity/>` takes precedence.
+
+### Alarm Export
+
+When emitting `<alarm>` elements, use `message` (the raw original string) when non-nil. Fall back to `type.rawValue` only when `message` is nil. This preserves non-spec alarm strings through round-trip.
+
+### Mix N2 Export
+
+`UDDFMix.n2` is optional. If nil, omit the `<n2>` element — do not derive it. Emitting a computed N2 would break round-trip for files that originally omitted it.
+
+### Link Refs in informationbeforedive
+
+The current parser puts all `<link ref>` elements from `<informationbeforedive>` into `buddyRefs`. On export, these are all emitted as `<link ref="..."/>` elements within `<informationbeforedive>`. The `siteRef` is also emitted as a `<link>`. The `decoModelRef` is emitted as a `<link>` if non-nil.
+
+This is not a perfect structural round-trip (the parser conflates buddy/equipment/deco refs into one list), but the link elements themselves are preserved — just potentially reordered. A future version could separate these into distinct arrays on the model.
+
 ## Overflow Design
+
+### Storage Type
+
+Changed from `[String: String]?` to `[(String, String)]?` — an ordered array of (element-name, XML-fragment) tuples. This preserves insertion order and handles duplicate element names (same element name can appear multiple times at the same level).
 
 ### Collection (Import Side)
 
 Add a helper to `StandardUDDFInterpreter`:
 
 ```swift
-func collectOverflow(_ node: XNode, knownChildren: Set<String>) -> [String: String]?
+func collectOverflow(_ node: XNode, knownChildren: Set<String>) -> [(String, String)]?
 ```
 
-Walks `node.children`, skips any whose name is in `knownChildren`, serializes the rest back to XML strings. Key is element name, value is the full XML fragment.
+Walks `node.children`, skips any whose name is in `knownChildren`, serializes the rest back to XML strings via `XNode.toXML()`.
 
 Example: `<applicationdata><foo>bar</foo></applicationdata>` becomes:
 ```swift
-["applicationdata": "<applicationdata><foo>bar</foo></applicationdata>"]
+[("applicationdata", "<applicationdata><foo>bar</foo></applicationdata>")]
 ```
+
+**`XNode.toXML() -> String`**: Serializes a subtree back to well-formed XML. Must apply `escapeText` and `escapeAttribute` to text content and attribute values respectively (the XNode stores decoded/unescaped values from the parser).
 
 **Three collection points** (matching the three model overflow fields):
 
@@ -176,11 +214,9 @@ Example: `<applicationdata><foo>bar</foo></applicationdata>` becomes:
 | `UDDFDive.overflow` | `<dive>` element | informationbeforedive, informationafterdive, tankdata, samples |
 | `UDDFSite.overflow` | `<site>` element | name, aliasname, environment, geography, sitedata, rating, notes |
 
-To serialize an `XNode` subtree back to XML, add a `func toXML() -> String` method on `XNode`.
-
 ### Splicing (Export Side)
 
-After emitting all known children of an element, emit overflow entries via `builder.rawXML()`. Overflow is already well-formed XML from a previous parse — no escaping applied.
+After emitting all known children of an element, emit overflow entries via `builder.rawXML()`. The overflow values are complete XML fragments produced by `XNode.toXML()` during import — already well-formed and properly escaped.
 
 ## Testing Strategy
 
@@ -190,13 +226,13 @@ Parse `minimal-valid.uddf` → export → re-parse → compare every field:
 - `UDDFDocument`: version, generator, mixes, sites, diveBases, decoModels
 - `UDDFDive`: all before/after fields, tanks, waypoint count
 - `UDDFWaypoint`: time, depth, temperature, tankPressures, switchMixRef, diveMode, calculatedPO2, ndl
-- `UDDFMix`: id, name, o2, n2, he
+- `UDDFMix`: id, name, o2, he (n2 only if originally present)
 - `UDDFSite`: id, name, latitude, longitude
 
 ### Overflow Round-Trip Test
 
-Synthetic UDDF with unknown elements at document/dive/site level:
-1. Parse → verify overflow dictionaries populated
+Synthetic UDDF with unknown elements at document/dive/site level, including duplicate element names:
+1. Parse → verify overflow arrays populated with correct count
 2. Export → re-parse → verify overflow survived
 3. Verify known fields unaffected by overflow presence
 
@@ -214,6 +250,8 @@ Synthetic UDDF with unknown elements at document/dive/site level:
 - Generator fallback: uses `document.generator` when parameter is nil
 - Empty/minimal documents export without error
 - Large waypoint sets export correctly
+- Surface interval mutual exclusion (infinity vs passedtime)
+- Alarm message vs type.rawValue precedence
 
 ### Performance Tests
 
@@ -227,6 +265,10 @@ Synthetic UDDF with unknown elements at document/dive/site level:
 | Export large | Parsed `divinglog6-mk3i.uddf` | Export throughput at scale |
 | Round-trip | Parse + export + re-parse | End-to-end cost |
 
+### Comparative Performance Benchmarks
+
+Compare our Foundation-only approach against Foundation's `XMLDocument` (macOS-only) performing equivalent operations on the same fixtures. This validates that the zero-dependency approach isn't paying a significant performance penalty. Tests are `#if canImport(FoundationXML)` guarded.
+
 ## Files to Create
 
 | File | Purpose |
@@ -239,15 +281,24 @@ Synthetic UDDF with unknown elements at document/dive/site level:
 | `Tests/UDDFTests/Export/OverflowRoundTripTests.swift` | Overflow preservation |
 | `Tests/UDDFTests/Export/XMLEscapingTests.swift` | Escaping correctness |
 | `Tests/UDDFTests/Export/ExporterTests.swift` | Export-only tests |
-| `Tests/UDDFTests/Performance/PerformanceTests.swift` | Import + export benchmarks |
+| `Tests/UDDFTests/Performance/PerformanceTests.swift` | Import + export benchmarks + comparative |
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `Sources/UDDF/XML/XMLNode.swift` | Add `toXML() -> String` for overflow serialization |
+| `Sources/UDDF/XML/XMLNode.swift` | Add `toXML() -> String` for overflow serialization (applies escaping) |
+| `Sources/UDDF/Model/UDDFDocument.swift` | Change `overflow` type to `[(String, String)]?` |
+| `Sources/UDDF/Model/UDDFDive.swift` | Change `overflow` type to `[(String, String)]?` |
+| `Sources/UDDF/Model/UDDFSite.swift` | Change `overflow` type to `[(String, String)]?` |
 | `Sources/UDDF/Parser/StandardUDDFInterpreter.swift` | Add `collectOverflow()`, call at document/dive/site level |
 | `Sources/UDDF/Parser/ShearwaterInterpreter.swift` | Pass through overflow from standard interpreter |
+
+## Known Limitations
+
+- Notes paragraph boundaries may shift on round-trip (content preserved, structure approximate)
+- Link refs in `informationbeforedive` are not semantically separated (buddy vs equipment vs deco model) — all preserved as `<link>` elements but potentially reordered
+- `generator.datetime` is preserved verbatim (not refreshed to current time on export)
 
 ## Non-Goals
 
