@@ -1,0 +1,28 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>gradientfactor</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="gloves.html" title="gloves"><link rel="next" href="gradientfactorhigh.html" title="gradientfactorhigh"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">gradientfactor</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="gloves.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="gradientfactorhigh.html">Next</a></td></tr></table><hr></div><div class="sect1" title="gradientfactor"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gradientfactor"></a>gradientfactor</h2></div></div></div><div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_au"></a>Occurrence</h4></div></div></div><p>
+                    optional, single
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_at"></a>Attributes</h4></div></div></div><p>
+                    tissue=<span class="emphasis"><em>number of that tissue which currently tolerates the lowest ambient pressure without symptoms</em></span>
+                    &#8212; optional
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_be"></a>Description</h4></div></div></div><p>
+                    The element indicates the actual value of the so-called "leading tissue" as a percentage as a real number.
+                    At a certain timestamp there exists only one "leading tissue". Therefore &lt;gradientfactor&gt; may appear
+                    only once inside a &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;.
+                </p><p>
+                    The attribute <span class="emphasis"><em>tissue</em></span> indicates the number of the tissue whose value is given by the
+                    &lt;gradientfactor&gt; element.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="decomodel.html" title="decomodel">decomodel</a>&gt;,
+                    &lt;<a class="link" href="gradientfactorhigh.html" title="gradientfactorhigh">gradientfactorhigh</a>&gt;,
+                    &lt;<a class="link" href="gradientfactorlow.html" title="gradientfactorlow">gradientfactorlow</a>&gt;,
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_gradientfactor_bsp"></a>Examples</h4></div></div></div><p>
+                    (see also &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;)
+                </p><pre class="screen">
+&lt;!-- tissue no. 4 is that one with the highest value of --&gt;
+&lt;!-- 80 % of the maximum tolerated saturation --&gt;
+&lt;gradientfactor tissue="4"&gt;0.8&lt;/gradientfactor&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="gloves.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="gradientfactorhigh.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">gloves </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> gradientfactorhigh</td></tr></table></div></body></html>

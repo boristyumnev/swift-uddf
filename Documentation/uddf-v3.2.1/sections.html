@@ -1,0 +1,48 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Chapter 7. The different sections, and their elements</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="index.html" title="Universal Dive Data Format UDDF"><link rel="prev" href="cross-referencing.html" title="Chapter 6. Cross-referencing"><link rel="next" href="sections_mediadata.html" title="&lt;mediadata&gt;"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 7. The different sections, and their elements</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="cross-referencing.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="sections_mediadata.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter 7. The different sections, and their elements"><div class="titlepage"><div><div><h2 class="title"><a name="sections"></a>Chapter 7. The different sections, and their elements</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="sections.html#sections_generator">&lt;generator&gt;</a></span></dt><dt><span class="sect1"><a href="sections_mediadata.html">&lt;mediadata&gt;</a></span></dt><dt><span class="sect1"><a href="sections_maker.html">&lt;maker&gt;</a></span></dt><dt><span class="sect1"><a href="sections_business.html">&lt;business&gt;</a></span></dt><dt><span class="sect1"><a href="sections_diver.html">&lt;diver&gt;</a></span></dt><dt><span class="sect1"><a href="sections_divesite.html">&lt;divesite&gt;</a></span></dt><dt><span class="sect1"><a href="sections_gasdefinitions.html">&lt;gasdefinitions&gt;</a></span></dt><dt><span class="sect1"><a href="sections_decomodel.html">&lt;decomodel&gt;</a></span></dt><dt><span class="sect1"><a href="sections_profiledata.html">&lt;profiledata&gt;</a></span></dt><dt><span class="sect1"><a href="sections_tablegeneration.html">&lt;tablegeneration&gt;</a></span></dt><dt><span class="sect1"><a href="sections_divetrip.html">&lt;divetrip&gt;</a></span></dt><dt><span class="sect1"><a href="sections_divecomputercontrol.html">&lt;divecomputercontrol&gt;</a></span></dt></dl></div><p>
+            Following the elements available in the individual sections are listed. A detailed
+            description of the elements is given in the alphabetical listing in the next chapter.
+        </p><p>
+            Some elements, like &lt;<a class="link" href="datetime.html" title="datetime">datetime</a>&gt; e.g., appear in several sections.
+        </p><p>
+            Elements with same indentation are part of the same hierarchical level and belong as
+            "subelements" (child elements) to the element, or section, with one indentation level to the left (parent element).
+            For example, the elements &lt;<a class="link" href="street.html" title="street">street</a>&gt;, &lt;<a class="link" href="city.html" title="city">city</a>&gt;,
+            &lt;<a class="link" href="postcode.html" title="postcode">postcode</a>&gt;, &lt;<a class="link" href="country.html" title="country">country</a>&gt;, and
+            &lt;<a class="link" href="province.html" title="province">province</a>&gt; belong to the higher element
+            &lt;<a class="link" href="address.html" title="address">address</a>&gt; (&lt;<a class="link" href="address.html" title="address">address</a>&gt; is the so-called
+            "parent", the other ones are the "child elements"). The end tag is <span class="bold"><strong>not</strong></span> shown in these examples
+            (e.g., &lt;/address&gt; does not appear &#8212; to remain within the above example)!
+        </p><p>
+            <span class="bold"><strong>All</strong></span> elements are listed here &#8212; regardless whether they are not used/saved in a special case.
+        </p><p>
+            Some elements must appear, other ones can. Some elements may be given only once, while other elements can appear any times. These
+            differences are not marked in the lists below and can be taken from the respective element descriptions.
+        </p><div class="sect1" title="&lt;generator&gt;"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sections_generator"></a>&lt;generator&gt;</h2></div></div></div><p>
+                The &lt;<a class="link" href="generator.html" title="generator">generator</a>&gt; section follows directly after the file header, it
+                must be given. In this section information is given concerning the software which generates the
+                <span class="emphasis"><em>UDDF</em></span> file.
+            </p><pre class="screen">
+&lt;<a class="link" href="generator.html" title="generator">generator</a>&gt;
+    &lt;<a class="link" href="name.html" title="name">name</a>&gt;
+    &lt;<a class="link" href="aliasname.html" title="aliasname">aliasname</a>&gt;
+    &lt;<a class="link" href="manufacturer.html" title="manufacturer">manufacturer</a>&gt;
+        &lt;<a class="link" href="name.html" title="name">name</a>&gt;
+        &lt;<a class="link" href="aliasname.html" title="aliasname">aliasname</a>&gt;
+        &lt;<a class="link" href="address.html" title="address">address</a>&gt;
+            &lt;<a class="link" href="street.html" title="street">street</a>&gt;
+            &lt;<a class="link" href="city.html" title="city">city</a>&gt;
+            &lt;<a class="link" href="postcode.html" title="postcode">postcode</a>&gt;
+            &lt;<a class="link" href="country.html" title="country">country</a>&gt;
+            &lt;<a class="link" href="province.html" title="province">province</a>&gt;
+        &lt;<a class="link" href="contact.html" title="contact">contact</a>&gt;
+            &lt;<a class="link" href="language.html" title="language">language</a>&gt;
+            &lt;<a class="link" href="phone.html" title="phone">phone</a>&gt;
+            &lt;<a class="link" href="mobilephone.html" title="mobilephone">mobilephone</a>&gt;
+            &lt;<a class="link" href="fax.html" title="fax">fax</a>&gt;
+            &lt;<a class="link" href="email.html" title="email">email</a>&gt;
+            &lt;<a class="link" href="homepage.html" title="homepage">homepage</a>&gt;
+    &lt;<a class="link" href="version.html" title="version">version</a>&gt;
+    &lt;<a class="link" href="datetime.html" title="datetime">datetime</a>&gt;
+    &lt;<a class="link" href="type.html" title="type">type</a>&gt;
+    &lt;<a class="link" href="link.html" title="link">link/</a>&gt;
+            </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="cross-referencing.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="sections_mediadata.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 6. Cross-referencing </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> &lt;mediadata&gt;</td></tr></table></div></body></html>

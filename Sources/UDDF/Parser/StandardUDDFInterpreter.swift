@@ -515,11 +515,14 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
             let tankPressures = parseTankPressures(wp)
             let alarms = parseAlarms(wp, divePath: divePath, diagnostics: &diagnostics)
             let decoStops = parseDecoStops(wp, divePath: divePath, diagnostics: &diagnostics)
-            let measuredPO2s = parseSensorReadings(wp, elementName: "measuredpo2")
-            let batteryVoltages = parseSensorReadings(wp, elementName: "batteryvoltage")
-            let scrubberReadings = parseSensorReadings(wp, elementName: "scrubber")
             let time = wp.doubleValue("divetime") ?? 0
             let wpPath = "\(divePath)/samples/waypoint[\(Int(time))s]"
+            let rawMeasuredPO2s = parseSensorReadings(wp, elementName: "measuredpo2")
+            let measuredPO2s = PressureNormalize.normalizedPO2Readings(
+                rawMeasuredPO2s, element: "measuredpo2", context: wpPath, diagnostics: &diagnostics
+            )
+            let batteryVoltages = parseSensorReadings(wp, elementName: "batteryvoltage")
+            let scrubberReadings = parseSensorReadings(wp, elementName: "scrubber")
 
             let waypoint = UDDFWaypoint(
                 time: time,
@@ -528,9 +531,15 @@ public struct StandardUDDFInterpreter: UDDFInterpreting, Sendable {
                 tankPressures: tankPressures,
                 switchMixRef: wp.child("switchmix")?.attribute("ref"),
                 diveMode: parseEnum(wp.child("divemode")?.attribute("type"), as: UDDFDiveMode.self, path: "\(wpPath)/divemode", diagnostics: &diagnostics),
-                calculatedPO2: wp.doubleValue("calculatedpo2"),
+                calculatedPO2: PressureNormalize.normalizedPO2(
+                    wp.doubleValue("calculatedpo2"),
+                    element: "calculatedpo2", context: wpPath, diagnostics: &diagnostics
+                ),
                 measuredPO2s: measuredPO2s,
-                setPO2: wp.child("setpo2")?.textValue.flatMap { Double($0) },
+                setPO2: PressureNormalize.normalizedPO2(
+                    wp.child("setpo2")?.textValue.flatMap { Double($0) },
+                    element: "setpo2", context: wpPath, diagnostics: &diagnostics
+                ),
                 setPO2SetBy: parseEnum(wp.child("setpo2")?.attribute("setby"), as: UDDFSetBySource.self, path: "\(wpPath)/setpo2/@setby", diagnostics: &diagnostics),
                 cns: wp.doubleValue("cns"),
                 ndl: wp.doubleValue("nodecotime"),

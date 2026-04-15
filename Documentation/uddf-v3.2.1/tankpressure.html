@@ -1,0 +1,42 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>tankpressure</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="tankmaterial.html" title="tankmaterial"><link rel="next" href="tankpressurebegin.html" title="tankpressurebegin"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">tankpressure</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="tankmaterial.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="tankpressurebegin.html">Next</a></td></tr></table><hr></div><div class="sect1" title="tankpressure"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tankpressure"></a>tankpressure</h2></div></div></div><div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_au"></a>Occurrence</h4></div></div></div><p>
+                    optional, multiple
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_at"></a>Attributes</h4></div></div></div><p>
+                    ref=<span class="emphasis"><em>unique identifier of the tank whose pressure is indicated</em></span> (optional)
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_be"></a>Description</h4></div></div></div><p>
+                    More and more dive computers are "air integrated" and show the tank pressure permanently during the dive.
+                    Via &lt;tankpressure&gt; it is indicated at a &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;.
+                    In particular with so-called "technical diving" several tanks are used which normaly contain different
+                    breathing gases. Then several tank pressures are shown by the dive computer, too. Therefore the attribute
+                    given with &lt;tankpressure&gt; indicates that tank the pressure value belongs to. In case there is only
+                    one tank, or a linked double-tank with only one pressure value measured, the attribute may be omitted.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="alarm.html" title="alarm">alarm</a>&gt;,
+                    &lt;<a class="link" href="cns.html" title="cns">cns</a>&gt;,
+                    &lt;<a class="link" href="depth.html" title="depth">depth</a>&gt;,
+                    &lt;<a class="link" href="divetime.html" title="divetime">divetime</a>&gt;,
+                    &lt;<a class="link" href="otu.html" title="otu">otu</a>&gt;,
+                    &lt;<a class="link" href="setpo2.html" title="setpo2">setpo2</a>&gt;,
+                    &lt;<a class="link" href="switchmix.html" title="switchmix">switchmix/</a>&gt;,
+                    &lt;<a class="link" href="tank.html" title="tank">tank</a>&gt;,
+                    &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;,
+                    &lt;<a class="link" href="tankpressurebegin.html" title="tankpressurebegin">tankpressurebegin</a>&gt;,
+                    &lt;<a class="link" href="tankpressureend.html" title="tankpressureend">tankpressureend</a>&gt;,
+                    &lt;<a class="link" href="temperature.html" title="temperature">temperature</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankpressure_bsp"></a>Examples</h4></div></div></div><p>
+                    See also &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;.
+                </p><pre class="screen">
+&lt;!-- actual pressure 200 bar (only 1 tank is used)--&gt;
+&lt;tankpressure&gt;20000000.0&lt;/tankpressure&gt;
+                </pre><pre class="screen">
+&lt;!-- Two tanks are used in this dive. Inside &lt;equipment&gt; both --&gt;
+&lt;!-- tanks must be declared via &lt;tank id="tank_air"&gt; and --&gt;
+&lt;!-- &lt;tank id="tank_o2"&gt; so that the cross-references are valid. --&gt;
+&lt;!-- breathing gas air: actual pressure 200 bar --&gt;
+&lt;tankpressure tankref="tank_air"&gt;20000000.0&lt;/tankpressure&gt;
+&lt;!-- breathing gas pure oxygen: actual pressure 180 bar --&gt;
+&lt;tankpressure tankref="tank_o2"&gt;18000000.0&lt;/tankpressure&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="tankmaterial.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="tankpressurebegin.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">tankmaterial </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> tankpressurebegin</td></tr></table></div></body></html>

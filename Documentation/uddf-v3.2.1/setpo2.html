@@ -1,0 +1,26 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>setpo2</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="setdcgeneratordata.html" title="setdcgeneratordata"><link rel="next" href="sex.html" title="sex"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">setpo2</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="setdcgeneratordata.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="sex.html">Next</a></td></tr></table><hr></div><div class="sect1" title="setpo2"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="setpo2"></a>setpo2</h2></div></div></div><div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_au"></a>Occurrence</h4></div></div></div><p>
+                    optional, multiple
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_at"></a>Attributes</h4></div></div></div><p>
+                    setby=<span class="emphasis"><em>user | computer</em></span> &#8212; compulsory
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_be"></a>Description</h4></div></div></div><p>
+                    Via &lt;setpo2&gt; the maximum tolerated oxygen partial pressure chosen by the diver (set attribute
+                    <span class="emphasis"><em>setby="user"</em></span>), or the dive computer (set attribute
+                    <span class="emphasis"><em>setby="computer"</em></span>) is set for diving with rebreathers. The value is given as a
+                    real number in the SI unit <span class="emphasis"><em>Pascal</em></span> and remains constant as long as a new value
+                    is set with another &lt;setpo2&gt; statement. Hereby, set values by the user, and the dive computer
+                    are to be treated independent.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="calculatedpo2.html" title="calculatedpo2">calculatedpo2</a>&gt;,
+                    &lt;<a class="link" href="measuredpo2.html" title="measuredpo2">measuredpo2</a>&gt;,
+                    &lt;<a class="link" href="samples.html" title="samples">samples</a>&gt;,
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_setpo2_bsp"></a>Examples</h4></div></div></div><p>
+                    (see also &lt;<a class="link" href="samples.html" title="samples">samples</a>&gt;)
+                </p><pre class="screen">
+&lt;!-- user set max PO2 of 1.4 bar --&gt;
+&lt;setpo2&gt;1.4e5&lt;/setpo2&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="setdcgeneratordata.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="sex.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">setdcgeneratordata </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> sex</td></tr></table></div></body></html>

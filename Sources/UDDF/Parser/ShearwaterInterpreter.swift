@@ -277,21 +277,32 @@ public struct ShearwaterInterpreter: UDDFInterpreting, Sendable {
                 currentMode = explicitMode
             }
 
-            let measuredPO2s = standard.parseSensorReadings(wp, elementName: "measuredpo2")
+            let time = wp.doubleValue("divetime") ?? 0
+            let wpPath = "dive/samples/waypoint[\(Int(time))s]"
+            let rawMeasuredPO2s = standard.parseSensorReadings(wp, elementName: "measuredpo2")
+            let measuredPO2s = PressureNormalize.normalizedPO2Readings(
+                rawMeasuredPO2s, element: "measuredpo2", context: wpPath, diagnostics: &diagnostics
+            )
             let batteryVoltages = standard.parseSensorReadings(wp, elementName: "batteryvoltage")
             let scrubberReadings = standard.parseSensorReadings(wp, elementName: "scrubber")
             let decoStops = standard.parseDecoStops(wp, diagnostics: &diagnostics)
 
             let waypoint = UDDFWaypoint(
-                time: wp.doubleValue("divetime") ?? 0,
+                time: time,
                 depth: wp.doubleValue("depth") ?? 0,
                 temperature: wp.doubleValue("temperature"),
                 tankPressures: tankPressures,
                 switchMixRef: switchMixRef,
                 diveMode: diveMode,
-                calculatedPO2: wp.doubleValue("calculatedpo2"),
+                calculatedPO2: PressureNormalize.normalizedPO2(
+                    wp.doubleValue("calculatedpo2"),
+                    element: "calculatedpo2", context: wpPath, diagnostics: &diagnostics
+                ),
                 measuredPO2s: measuredPO2s,
-                setPO2: wp.child("setpo2")?.textValue.flatMap { Double($0) },
+                setPO2: PressureNormalize.normalizedPO2(
+                    wp.child("setpo2")?.textValue.flatMap { Double($0) },
+                    element: "setpo2", context: wpPath, diagnostics: &diagnostics
+                ),
                 setPO2SetBy: wp.child("setpo2")?.attribute("setby").flatMap { UDDFSetBySource(rawValue: $0) },
                 cns: wp.doubleValue("cns"),
                 ndl: wp.doubleValue("nodecotime"),

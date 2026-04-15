@@ -24,7 +24,11 @@ public struct UDDFWaypoint: Codable, Sendable {
     public let setPO2: Double?
     /// Source of PO2 setpoint (user or computer).
     public let setPO2SetBy: UDDFSetBySource?
-    /// CNS O2 toxicity as fraction (0.0–1.0+).
+    /// CNS O₂ toxicity as a percent real number (e.g. `21` = 21%,
+    /// `0.18` = 0.18%), per UDDF v3.2.1 `cns.html`.
+    /// Note: this is NOT a 0..1 fraction — the spec encodes it as a
+    /// percent. Shearwater writes integers, APD writes small fractions;
+    /// both are percent and pass through unchanged.
     public let cns: Double?
     /// No-decompression time remaining in seconds.
     public let ndl: Double?

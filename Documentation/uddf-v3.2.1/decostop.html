@@ -1,0 +1,46 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>decostop</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="decomodel.html" title="decomodel"><link rel="next" href="decotrainer.html" title="decotrainer"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">decostop</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="decomodel.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="decotrainer.html">Next</a></td></tr></table><hr></div><div class="sect1" title="decostop"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="decostop"></a>decostop</h2></div></div></div> &#8212; empty element
+            <div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_au"></a>Occurrence</h4></div></div></div><p>
+                    optional, multiple
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_at"></a>Attributes</h4></div></div></div><p>
+                    kind=<span class="emphasis"><em>safety</em></span> | <span class="emphasis"><em>mandatory</em></span> (kind of decompression stop, whether
+                    safety stop, or mandatory decompression stop)
+                    &#8212; compulsory
+                </p><p>
+                    decodepth=<span class="emphasis"><em>depth of decompression stop given in metres as a real number</em></span>
+                    &#8212; compulsory
+                </p><p>
+                    duration=<span class="emphasis"><em>duration of decompression stop given in seconds as a real number</em></span>
+                    &#8212; compulsory
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_be"></a>Description</h4></div></div></div><p>
+                    Via &lt;decostop&gt; a decompression stop calculated by a dive computer, or a dive simulation program
+                    respectively, is indicated. While on dive computers normally only the deepest deco stop is displayed
+                    (although all shallower deco stops are also known at this time), <span class="emphasis"><em>UDDF</em></span> allows to
+                    indicate all these necessary decompression stops at a &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;.
+                    Then several &lt;decostop&gt; elements follow one after the other.
+                </p><p>
+                    A &lt;decostop&gt; always consists of its <span class="emphasis"><em>decodepth</em></span>, the <span class="emphasis"><em>duration</em></span>,
+                    and the <span class="emphasis"><em>kind</em></span> (safety stop, or mandatory decompression stop), which must be given as
+                    attributes.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="nodecotime.html" title="nodecotime">nodecotime</a>&gt;,
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_decostop_bsp"></a>Examples</h4></div></div></div><p>
+                    (see also &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;)
+                </p><pre class="screen">
+&lt;!-- safety stop at a depth of 3 m for 5 min announced --&gt;
+&lt;decostop kind="safety" decodepth="3.0" duration="300.0"/&gt;
+                </pre><pre class="screen">
+&lt;!-- decompression stop at a depth of 3 m for 6 min announced --&gt;
+&lt;decostop kind="mandatory" decodepth="3.0" duration="300.0"/&gt;
+                </pre><pre class="screen">
+&lt;!-- Several consecutive decompression stops calculated by the dive computer. --&gt;
+&lt;!-- Normally only the deepest stop to be held is announced by the dive computer, --&gt;
+&lt;!-- but - of course - all are calculated and can be set in UDDF. --&gt;
+&lt;decostop kind="mandatory" decodepth="9.0" duration="60.0"/&gt;
+&lt;decostop kind="mandatory" decodepth="6.0" duration="300.0"/&gt;
+&lt;decostop kind="mandatory" decodepth="3.0" duration="720.0"/&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="decomodel.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="decotrainer.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">decomodel </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> decotrainer</td></tr></table></div></body></html>

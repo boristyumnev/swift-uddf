@@ -112,7 +112,8 @@ struct StandardInterpreterTests {
         // Mid-dive waypoint with PO2 and NDL
         #expect(wp[2].depth == 20.0)
         #expect(wp[2].time == 120)
-        #expect(wp[2].calculatedPO2 == 0.63)
+        // UDDF v3.2.1 spec: calculatedpo2 is in Pa (see calculatedpo2.html).
+        #expect(wp[2].calculatedPO2 == 63000)
         #expect(wp[2].ndl == 600)
         #expect(wp[2].tankPressures.first?.value == 17500000)
         #expect(wp[2].tankPressures.first?.ref == "T1")

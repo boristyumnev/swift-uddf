@@ -1,0 +1,36 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>measuredpo2</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="maximumvisibility.html" title="maximumvisibility"><link rel="next" href="mediadata.html" title="mediadata"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">measuredpo2</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="maximumvisibility.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="mediadata.html">Next</a></td></tr></table><hr></div><div class="sect1" title="measuredpo2"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="measuredpo2"></a>measuredpo2</h2></div></div></div><div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_au"></a>Occurrence</h4></div></div></div><p>
+                    optional, multiple
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_at"></a>Attributes</h4></div></div></div><p>
+                    ref=<span class="emphasis"><em>
+                            unique identifier of the O<sub>2</sub>-sensor whose measured partial pressure is transfered
+                        </em></span> (mandatory)
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_be"></a>Description</h4></div></div></div><p>
+                    The element indicates the measured inspired oxygen partial pressure, given as a real number in the SI units
+                    <span class="emphasis"><em>Pascal</em></span>. Normally, for safety reasons more than one O<sub>2</sub>-sensor is
+                    built-in in a rebreather. Therefore, it is mandatory to indicate the respective sensor which transfered the
+                    oxygen partial pressure via the attribute. For the same reason &lt;measuredpo2&gt; may occur repeatedly for
+                    each built-in sensor inside a &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="calculatedpo2.html" title="calculatedpo2">calculatedpo2</a>&gt;,
+                    &lt;<a class="link" href="samples.html" title="samples">samples</a>&gt;,
+                    &lt;<a class="link" href="setpo2.html" title="setpo2">setpo2</a>&gt;,
+                    &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_measuredpo2_bsp"></a>Examples</h4></div></div></div><p>
+                    (see also &lt;<a class="link" href="waypoint.html" title="waypoint">waypoint</a>&gt;)
+                </p><pre class="screen">
+&lt;waypoint&gt;
+    &lt;depth&gt;...&lt;/depth&gt;
+    &lt;divetime&gt;...&lt;/divetime&gt;
+    &lt;!-- sensor 1 is measuring an oxygen partial pressure of 1.22 bar --&gt;
+    &lt;measuredpo2 ref="o2sensor_1"&gt;1.22e5&lt;/measuredpo2&gt;
+    &lt;!-- sensor 2 is measuring an oxygen partial pressure of 1.23 bar --&gt;
+    &lt;measuredpo2 ref="o2sendor_2"&gt;1.23e5&lt;/measuredpo2&gt;
+    &lt;!-- sensor 3 is measuring an oxygen partial pressure of 1.21 bar --&gt;
+    &lt;measuredpo2 ref="o2sensor_3"&gt;1.21e5&lt;/measuredpo2&gt;
+    &lt;!-- here other elements for this waypoint --&gt;
+&lt;/waypoint&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="maximumvisibility.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="mediadata.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">maximumvisibility </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> mediadata</td></tr></table></div></body></html>

@@ -1,0 +1,41 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>o2</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="numberofrecompressiontreatments.html" title="numberofrecompressiontreatments"><link rel="next" href="o2sensor.html" title="o2sensor"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">o2</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="numberofrecompressiontreatments.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="o2sensor.html">Next</a></td></tr></table><hr></div><div class="sect1" title="o2"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="o2"></a>o2</h2></div></div></div><div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_au"></a>Occurrence</h4></div></div></div><p>
+                    compulsory, single
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_at"></a>Attributes</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_be"></a>Description</h4></div></div></div><p>
+                    Defines the oxygen fraction of a breathing gas, given as a real number less or
+                    equal 1.0 in percent (of volume).
+                </p><p>
+                    While the other components of a breathing gas need not to be given (also if they are not contained in that breathing gas),
+                    the oxygen fraction <span class="bold"><strong>must</strong></span> be given.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="mix.html" title="mix">mix</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="aliasname.html" title="aliasname">aliasname</a>&gt;,
+                    &lt;<a class="link" href="ar.html" title="ar">ar</a>&gt;
+                    &lt;<a class="link" href="equivalentairdepth.html" title="equivalentairdepth">equivalentairdepth</a>&gt;
+                    &lt;<a class="link" href="h2.html" title="h2">h2</a>&gt;
+                    &lt;<a class="link" href="he.html" title="he">he</a>&gt;
+                    &lt;<a class="link" href="maximumoperationdepth.html" title="maximumoperationdepth">maximumoperationdepth</a>&gt;
+                    &lt;<a class="link" href="maximumpo2.html" title="maximumpo2">maximumpo2</a>&gt;
+                    &lt;<a class="link" href="mix.html" title="mix">mix</a>&gt;,
+                    &lt;<a class="link" href="name.html" title="name">name</a>&gt;,
+                    &lt;<a class="link" href="n2.html" title="n2">n2</a>&gt;,
+                    &lt;<a class="link" href="priceperlitre.html" title="priceperlitre">priceperlitre</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_o2_bsp"></a>Examples</h4></div></div></div><p>
+                    (see also &lt;<a class="link" href="mix.html" title="mix">mix</a>&gt;)
+                </p><pre class="screen">
+&lt;mix id="alfreds_nitrox"&gt;
+    &lt;name&gt;my_favorite_nitrox_mix&lt;/name&gt;
+    &lt;!-- 37,5 % oxygen --&gt;
+    &lt;o2&gt;0.375&lt;/o2&gt;
+    &lt;!-- 62,5 % nitrogen --&gt;
+    &lt;n2&gt;0.625&lt;/n2&gt;
+    &lt;!-- no other components in breathing gas --&gt;
+    &lt;he&gt;0.0&lt;/he&gt;
+    &lt;ar&gt;0.0&lt;/ar&gt;
+    &lt;h2&gt;0.0&lt;/h2&gt;
+&lt;/mix&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="numberofrecompressiontreatments.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="o2sensor.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">numberofrecompressiontreatments </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> o2sensor</td></tr></table></div></body></html>

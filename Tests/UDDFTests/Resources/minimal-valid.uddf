@@ -60,7 +60,7 @@
             <divetime>120</divetime>
             <temperature>285.15</temperature>
             <tankpressure ref="T1">17500000</tankpressure>
-            <calculatedpo2>0.63</calculatedpo2>
+            <calculatedpo2>63000</calculatedpo2>
             <nodecotime>600</nodecotime>
           </waypoint>
           <waypoint>

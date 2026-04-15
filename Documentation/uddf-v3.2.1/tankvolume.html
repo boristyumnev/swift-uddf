@@ -1,0 +1,31 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>tankvolume</title><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"><link rel="home" href="index.html" title="Universal Dive Data Format UDDF"><link rel="up" href="elements.html" title="Chapter 9. Elements of UDDF (in alphabetical order)"><link rel="prev" href="tankpressurereserve.html" title="tankpressurereserve"><link rel="next" href="tankvolumebegin.html" title="tankvolumebegin"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">tankvolume</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="tankpressurereserve.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Elements of <span class="emphasis"><em>UDDF</em></span> (in alphabetical order)</th><td width="20%" align="right"> <a accesskey="n" href="tankvolumebegin.html">Next</a></td></tr></table><hr></div><div class="sect1" title="tankvolume"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tankvolume"></a>tankvolume</h2></div></div></div><div class="sect3" title="Occurrence"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_au"></a>Occurrence</h4></div></div></div><p>
+                    optional, single
+                </p></div><div class="sect3" title="Attributes"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_at"></a>Attributes</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="Description"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_be"></a>Description</h4></div></div></div><p>
+                    Volume of the tank used in cubicmetres [m^3] &#8212; not in litres, as <span class="emphasis"><em>UDDF</em></span> uses SI units!
+                </p><p>
+                    The tank volume can either be given inside &lt;<a class="link" href="tank.html" title="tank">tank</a>&gt;, or inside
+                    &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;. If inside &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;
+                    a cross-reference is made to &lt;<a class="link" href="tank.html" title="tank">tank</a>&gt; data and if the tank volume is given
+                    there, there is no need to indicate the tank volume again inside
+                    &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt; &#8212; indeed, it should not be given again. In case it is,
+                    the <span class="emphasis"><em>UDDF</em></span> file wasn't built thoroughly! Then the last given tank volume (inside
+                    &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;) overwrites the "global" value given inside
+                    &lt;<a class="link" href="tank.html" title="tank">tank</a>&gt;.
+                </p></div><div class="sect3" title="Parent Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_ee"></a>Parent Elements</h4></div></div></div><p>
+                    &lt;<a class="link" href="tank.html" title="tank">tank</a>&gt;,
+                    &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;
+                </p></div><div class="sect3" title="Child Elements"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_ke"></a>Child Elements</h4></div></div></div><p>
+                    &#8212;
+                </p></div><div class="sect3" title="See Also"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_sa"></a>See Also</h4></div></div></div><p>
+                    &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;
+                </p></div><div class="sect3" title="Examples"><div class="titlepage"><div><div><h4 class="title"><a name="s3_tankvolume_bsp"></a>Examples</h4></div></div></div><p>
+                    (see also &lt;<a class="link" href="tankdata.html" title="tankdata">tankdata</a>&gt;)
+                </p><pre class="screen">
+&lt;!-- tank volume 10 Litres --&gt;
+&lt;tankvolume&gt;0.01&lt;/tankvolume&gt;
+                </pre><pre class="screen">
+&lt;!-- tank volume 12 Litres --&gt;
+&lt;tankvolume&gt;0.012&lt;/tankvolume&gt;
+                </pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="tankpressurereserve.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="elements.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="tankvolumebegin.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">tankpressurereserve </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> tankvolumebegin</td></tr></table></div></body></html>
